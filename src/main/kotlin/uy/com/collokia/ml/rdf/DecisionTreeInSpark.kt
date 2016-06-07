@@ -1,7 +1,9 @@
 package uy.com.collokia.ml.rdf
 
 import org.apache.log4j.BasicConfigurator
+import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -24,7 +26,7 @@ public class DecisionTreeInSpark() : Serializable {
         println(metrics.confusionMatrix())
         println(metrics.precision())
 
-        val res = (0..7).map({ category ->
+        val res = (0..6).map({ category ->
             "${category}\tprecision:\t${metrics.precision(category.toDouble())}, recall:\t${metrics.recall(category.toDouble())}, F-measure:\t${metrics.fMeasure(category.toDouble())}"
 
         }).joinToString("\n")
@@ -144,7 +146,7 @@ public class DecisionTreeInSpark() : Serializable {
         cvData.cache()
 
         val forest = RandomForest.trainClassifier(
-                trainData, 7, mapOf(10 to 4, 11 to 40), 20, "auto", "entropy", 30, 300,5)
+                trainData, 7, mapOf(10 to 4, 11 to 40), 20, "auto", "entropy", 30, 300,12)
 
         val predictionsAndLabels = cvData.map({ example ->
             Tuple2(forest.predict(example.features()) as Any, example.label() as Any)
@@ -158,6 +160,34 @@ public class DecisionTreeInSpark() : Serializable {
 
 
     public fun RunRDF() {
+        val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
+
+        val jsc = JavaSparkContext(sparkConf)
+
+        val rawData = jsc.textFile("./data/DT/covtype.data.gz")
+
+        val data = rawData.map { line ->
+            val values = line.split(',').map({value ->value.toDouble()})
+            val featureVector = Vectors.dense(values.toDoubleArray())
+            val label = values.last() - 1
+            LabeledPoint(label, featureVector)
+        }
+
+        val (trainData, cvData, testData) = data.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+        trainData.cache()
+        cvData.cache()
+        testData.cache()
+
+        //simpleDecisionTree(trainData, cvData)
+        //randomClassifier(trainData, cvData)
+        //evaluate(trainData, cvData, testData)
+        //evaluateCategorical(rawData)
+        evaluateForest(rawData)
+
+        trainData.unpersist()
+        cvData.unpersist()
+        testData.unpersist()
+
 
     }
 
@@ -165,5 +195,7 @@ public class DecisionTreeInSpark() : Serializable {
 
 fun main(args: Array<String>) {
     BasicConfigurator.configure()
+    val decisionTree = DecisionTreeInSpark()
+    decisionTree.RunRDF()
 }
 
