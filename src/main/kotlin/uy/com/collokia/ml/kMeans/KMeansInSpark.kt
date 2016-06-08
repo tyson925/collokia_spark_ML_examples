@@ -23,12 +23,13 @@ public class KMeansInSpark() : Serializable {
 
         val jsc = JavaSparkContext(sparkConf)
 
-        val rawData = jsc.textFile("./data/KMeans/kddcup.data.gz")
+        val rawData = jsc.textFile("./data/KMeans/kddcup.data_10_percent.gz").cache()
         //clusteringTake0(rawData)
         //clusteringTake1(rawData)
         //clusteringTake2(rawData)
         //clusteringTake3(rawData)
-        clusteringTake4(rawData)
+        //clusteringTake4(rawData)
+        anomalies(rawData)
     }
 
     public fun readData(rawData: JavaRDD<String>): JavaPairRDD<String, Vector> {
@@ -225,7 +226,7 @@ public class KMeansInSpark() : Serializable {
         kmeans.setRuns(10)
         kmeans.setEpsilon(1.0e-6)
 
-        val model = kmeans.run(normalizedLabelsAndData.values().rdd())
+        val model = kmeans.run(normalizedLabelsAndData.values().rdd().cache())
 
         // Predict cluster for each datum
         val labelsAndClusters = normalizedLabelsAndData.mapToPair({ instance ->
