@@ -3,8 +3,8 @@ package uy.com.collokia.ml.lsa
 import edu.stanford.nlp.ling.CoreAnnotations
 import edu.stanford.nlp.pipeline.Annotation
 import scala.Tuple2
-import uy.com.collokia.ml.util.component1
-import uy.com.collokia.ml.util.component2
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
 import java.io.File
 import java.util.*
 import edu.stanford.nlp.pipeline.StanfordCoreNLP
@@ -14,6 +14,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.LongWritable
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat
+import uy.com.collokia.util.component1
 
 
 public  val  START_TAG_KEY = "xmlinput.start";

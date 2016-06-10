@@ -11,8 +11,8 @@ import org.apache.spark.mllib.clustering.KMeansModel
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.mllib.linalg.Vectors
 import scala.Tuple2
-import uy.com.collokia.ml.util.component1
-import uy.com.collokia.ml.util.component2
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
 import java.io.Serializable
 
 

@@ -12,10 +12,11 @@ import org.apache.spark.mllib.recommendation.ALS
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
 import org.apache.spark.mllib.recommendation.Rating
 import scala.Tuple2
-import uy.com.collokia.ml.util.component1
-import uy.com.collokia.ml.util.component2
-import uy.com.collokia.ml.util.formatterToTimePrint
-import uy.com.collokia.ml.util.measureTimeInMillis
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
+import uy.com.collokia.util.formatterToTimePrint
+import uy.com.collokia.util.measureTimeInMillis
+import uy.com.collokia.util.component1
 import java.util.*
 
 
