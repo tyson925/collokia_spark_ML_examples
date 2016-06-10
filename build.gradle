@@ -1,0 +1,119 @@
+group 'com.collokia'
+version '1.0-SNAPSHOT'
+description 'collokia-spark streaming testbed'
+
+buildscript {
+    ext.kotlin_version = '1.0.1'
+    repositories {
+        jcenter()
+        maven {
+            url 'http://repo.spring.io/plugins-release'
+        }
+        mavenCentral()
+        maven {
+            url 'http://dl.bintray.com/kotlin/kotlin-eap'
+        }
+        maven {
+            url 'http://dl.bintray.com/jaysonminard/kohesive'
+        }
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+    }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'application'
+apply plugin: 'gradle-one-jar'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+mainClassName = "uy.collokia.flink.soData.S3DataRederOnEMR"
+
+task oneJar(type: OneJar) {
+    mainClass = 'uy.collokia.flink.soData.S3DataRederOnEMR'
+}
+
+dependencies {
+    compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
+    compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
+    compile "info.bliki.wiki:bliki-core:3.0.19"
+    //complie "com.cloudera.datascience:common:1.0.2"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.apache.spark:spark-mllib_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-sql_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-core_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-streaming-twitter_2.10:${version_Spark}"
+    compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
+    compile "com.cybozu.labs:langdetect:1.1-20120112"
+    compile ("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR"){
+
+        exclude group: "cascading"
+        exclude group: "org.apache.pig"
+        exclude group: "org.apache.storm"
+    }
+    testCompile("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR") {
+        exclude group: "cascading"
+        exclude group: "org.apache.pig"
+        exclude group: "org.apache.storm"
+    }
+
+    compile "joda-time:joda-time:$version_jodatime"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson"
+    compile "com.fasterxml.jackson.core:jackson-core:$version_jackson"
+    compile "com.fasterxml.jackson.core:jackson-databind:$version_jackson"
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$version_jackson_kotlin"
+    compile "com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"
+
+    configurations.all {
+        resolutionStrategy {
+            force "com.fasterxml.jackson.core:jackson-databind:$version_jackson","com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson","com.fasterxml.jackson.core:jackson-core:$version_jackson","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"
+            forcedModules = ["com.fasterxml.jackson.core:jackson-databind:$version_jackson","com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson","com.fasterxml.jackson.core:jackson-core:$version_jackson","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"]
+        }
+    }
+}
+
+
+repositories {
+    maven {
+        url "https://collokia.artifactoryonline.com/collokia/collokia-internal"
+        credentials {
+            username "${collokiaRepoUser}"
+            password "${collokiaRepoPass}"
+        }
+    }
+    maven {
+        url 'https://collokia.artifactoryonline.com/collokia/collokia-oss'
+    }
+    mavenCentral()
+    jcenter()
+    maven {
+        url 'http://oss.sonatype.org/content/repositories/snapshots'
+    }
+    maven {
+        url 'http://repo.spring.io/plugins-release'
+    }
+    maven {
+        url 'http://dl.bintray.com/kotlin/kotlin-eap'
+    }
+    maven {
+        url 'http://dl.bintray.com/jaysonminard/kohesive'
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.8'
+}
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
