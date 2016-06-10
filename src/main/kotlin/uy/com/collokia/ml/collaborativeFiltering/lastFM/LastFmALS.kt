@@ -1,5 +1,5 @@
 
-package com.collokia.ml.collaborativeFiltering.lastFm
+package uy.com.collokia.ml.collaborativeFiltering.lastFm
 
 import org.apache.log4j.BasicConfigurator
 import org.apache.spark.SparkConf
@@ -16,7 +16,6 @@ import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
-import uy.com.collokia.util.component1
 import java.util.*
 
 
