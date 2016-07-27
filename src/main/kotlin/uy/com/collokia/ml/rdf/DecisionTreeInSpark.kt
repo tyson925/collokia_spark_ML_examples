@@ -181,8 +181,8 @@ public class DecisionTreeInSpark() : Serializable {
         //simpleDecisionTree(trainData, cvData)
         //randomClassifier(trainData, cvData)
         //evaluate(trainData, cvData, testData)
-        //evaluateCategorical(rawData)
-        evaluateForest(rawData)
+        evaluateCategorical(rawData)
+        //evaluateForest(rawData)
 
         trainData.unpersist()
         cvData.unpersist()
