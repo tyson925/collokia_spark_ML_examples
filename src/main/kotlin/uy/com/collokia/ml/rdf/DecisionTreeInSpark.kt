@@ -4,6 +4,7 @@ import org.apache.log4j.BasicConfigurator
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
@@ -17,7 +18,7 @@ import java.io.Serializable
 
 public class DecisionTreeInSpark() : Serializable {
 
-    public fun simpleDecisionTree(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses : Int) {
+    public fun simpleDecisionTree(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
 
         // Build a simple default DecisionTreeModel
         val model = DecisionTree.trainClassifier(trainData, numClasses, mapOf<Int, Int>(), "gini", 4, 100)
@@ -27,7 +28,7 @@ public class DecisionTreeInSpark() : Serializable {
         println(metrics.confusionMatrix())
         println(metrics.precision())
 
-        val res = (0..numClasses-1).map({ category ->
+        val res = (0..numClasses - 1).map({ category ->
             "${category}\tprecision:\t${metrics.precision(category.toDouble())}, recall:\t${metrics.recall(category.toDouble())}, F-measure:\t${metrics.fMeasure(category.toDouble())}"
 
         }).joinToString("\n")
@@ -63,11 +64,11 @@ public class DecisionTreeInSpark() : Serializable {
         return counts.map({ it -> it.toDouble() / counts.sum() }).toDoubleArray()
     }
 
-    public fun evaluate(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>,numClasses : Int) {
+    public fun evaluate(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>, numClasses: Int) {
         val evaluations =
                 listOf("gini", "entropy").flatMap { impurity ->
-                    intArrayOf(1, 20).flatMap { depth ->
-                        intArrayOf(10, 300).map { bins ->
+                    intArrayOf(1, 10, 20, 30).flatMap { depth ->
+                        intArrayOf(10, 40, 300).map { bins ->
                             val model = DecisionTree.trainClassifier(
                                     trainData, numClasses, mapOf<Int, Int>(), impurity, depth, bins)
                             val accuracy = getMetrics(model, cvData).precision()
@@ -75,6 +76,7 @@ public class DecisionTreeInSpark() : Serializable {
                         }
                     }
                 }
+
 
         println(evaluations.sortedBy({ it -> it._2 }).reversed().joinToString("\n"))
 
@@ -139,21 +141,29 @@ public class DecisionTreeInSpark() : Serializable {
 
     }
 
-    public fun evaluateForest(rawData: JavaRDD<String>) {
+    public fun evaluateSimpleForest(rawData: JavaRDD<String>, numClasses: Int) {
         val data = unencodeOneHot(rawData)
 
-        val forest = evaluateForest(data)
+        val (trainData, cvData) = data.randomSplit(doubleArrayOf(0.9, 0.1))
+        trainData.cache()
+        cvData.cache()
+        val forest = evaluateSimpleForest(trainData, cvData, numClasses)
         val input = "2709,125,28,67,23,3224,253,207,61,6094,0,29"
         val vector = Vectors.dense(input.split(',').map({ it -> it.toDouble() }).toDoubleArray())
         println(forest.predict(vector))
     }
 
-    public fun evaluateForest(data: JavaRDD<LabeledPoint>): RandomForestModel {
-        val (trainData, cvData) = data.randomSplit(doubleArrayOf(0.9, 0.1))
-        trainData.cache()
-        cvData.cache()
+    public fun evaluateSimpleForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): RandomForestModel {
+        val categoricalFeatureInfo = mapOf<Int, Int>()
+        val featureSubsetStrategy = "auto"
+        val impurity = "variance"
+        val maxDepth = 10
+        val maxBin = 32
+        val numTree = 50
 
-        val forestModel = RandomForest.trainClassifier(trainData, 7, mapOf(10 to 4, 11 to 40), 20, "auto", "entropy", 30, 300, 12)
+        //10 to 4, 11 to 40
+        val forestModel = RandomForest.trainClassifier(trainData, numClasses, categoricalFeatureInfo, numTree,featureSubsetStrategy, impurity,
+                maxDepth, maxBin, numTree)
 
         trainData.unpersist()
 
@@ -163,6 +173,46 @@ public class DecisionTreeInSpark() : Serializable {
         println(MulticlassMetrics(predictionsAndLabels.rdd()).precision())
 
         return forestModel
+    }
+
+    public fun evaluateForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
+        val categoricalFeatureInfo = mapOf<Int, Int>()
+        val featureSubsetStrategy = "auto"
+        val impurities = listOf("gini", "entropy")
+        val maxDepths = listOf(10, 20, 30)
+        val maxBins = listOf(40, 300)
+        val numTrees = listOf(10, 50)
+
+        val evaluations =
+                impurities.flatMap { impurity ->
+                    maxDepths.flatMap { depth ->
+                        maxBins.flatMap { bins ->
+                            numTrees.map { numTree ->
+                                // Specify value count for categorical features 10, 11
+                                val model = RandomForest.trainClassifier(trainData,
+                                        numClasses, categoricalFeatureInfo, numTree,featureSubsetStrategy,impurity, depth, bins, numTree)
+                                val trainScores = trainData.map { point ->
+                                    val prediction = model.predict(point.features())
+                                    Tuple2(prediction as Any, point.label() as Any)
+                                }
+                                val testScores = cvData.map { point ->
+                                    val prediction = model.predict(point.features())
+                                    Tuple2(prediction as Any, point.label() as Any)
+                                }
+                                //val metricsTrain = MulticlassMetrics(trainScores.rdd())
+                                val metricsTest = MulticlassMetrics(testScores.rdd())
+
+
+                                // Return train and CV accuracy
+                                Tuple2(Triple(impurity, depth, bins), Triple(metricsTest.weightedFMeasure(), metricsTest.weightedPrecision(), metricsTest.weightedRecall()))
+                            }
+                        }
+                    }
+                }
+
+        println(evaluations.sortedBy({ evaluation -> evaluation._2.first }).reversed().joinToString("\n"))
+
+
     }
 
 
@@ -186,10 +236,10 @@ public class DecisionTreeInSpark() : Serializable {
         testData.cache()
 
         //simpleDecisionTree(trainData, cvData)
-        //randomClassifier(trainData, cvData)
+        randomClassifier(trainData, cvData)
         //evaluate(trainData, cvData, testData)
         evaluateCategorical(rawData)
-        evaluateForest(rawData)
+        evaluateSimpleForest(rawData, 7)
 
         trainData.unpersist()
         cvData.unpersist()

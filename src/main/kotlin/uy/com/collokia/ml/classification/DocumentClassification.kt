@@ -120,8 +120,10 @@ public class DocumentClassification() : Serializable {
         val testData = convertDataFrameToLabeledPoints(testTfIdfDF)
 
         val dt = DecisionTreeInSpark()
-        //dt.evaluateForest(data)
-        dt.evaluate(trainData, cvData, testData, 10)
+        //dt.evaluateSimpleForest(trainData,cvData,10)
+        //dt.evaluate(trainData, cvData, testData, 10)
+        dt.evaluateForest(trainData,cvData,10)
+
     }
 
 
@@ -179,14 +181,6 @@ public class DocumentClassification() : Serializable {
         return idfModel
     }
 
-    public fun applyTfIdf(corpus: DataFrame, hashingTF: HashingTF, idfModel: IDFModel): DataFrame {
-        val tfFeatures = hashingTF.transform(corpus)
-
-        val rescaledData = idfModel.transform(tfFeatures)
-
-        return rescaledData
-    }
-
 
     public fun readJson() {
         var index = 0
@@ -226,7 +220,7 @@ public class DocumentClassification() : Serializable {
 
         createTfIdfCorpus(jsc)
         //val dt = DecisionTreeInSpark()
-        //dt.evaluateForest(data)
+        //dt.evaluateSimpleForest(data)
         //dt.evaluate(trainData, cvData, testData, 10)
         //println(dt.classProbabilities(trainData).joinToString("\n"))
         //dt.simpleDecisionTree(trainData,testData,10)
