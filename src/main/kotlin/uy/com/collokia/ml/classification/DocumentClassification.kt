@@ -25,25 +25,26 @@ public data class ReutersDocument(val title: String?, var body: String?, val dat
 
 public class DocumentClassification() : Serializable {
 
+    var hashingTF: HashingTF? = null
+    var idfModel: IDFModel? = null
+
     companion object {
         val MAPPER = jacksonObjectMapper()
+        val topCategories = listOf("ship", "grain", "money-fx", "corn", "trade", "crude", "earn", "wheat", "acq", "interest")
+        //val topCategories = listOf("earn", "acq")
     }
 
 
-    public fun createCorpus(jsc: JavaSparkContext): JavaRDD<LabeledPoint> {
-        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
-
-        val sqlContext = SQLContext(jsc)
-
-        val topCategories = listOf("ship", "grain", "money-fx", "corn", "trade", "crude", "earn", "wheat", "acq", "interest")
-        //val topCategories = listOf("earn", "acq")
+    public fun parseCorpus(sqlContext: SQLContext, corpusInRaw: JavaRDD<String>): DataFrame {
 
         val corpus = corpusInRaw.map { line ->
             val doc = MAPPER.readValue(line, ReutersDocument::class.java)
             doc
-        }.filter { doc ->
+        }/*.filter { doc ->
             doc.topics != null || doc.topics?.intersect(topCategories)?.isNotEmpty() ?: false
-        }
+        }*/
+
+        corpusInRaw.unpersist()
 
         println("corpus size: " + corpus.count())
 
@@ -54,15 +55,17 @@ public class DocumentClassification() : Serializable {
             }
         }
 
+        corpus.unpersist()
+
         val schema = StructType(arrayOf<StructField>(StructField("category", DataTypes.StringType, true, Metadata.empty()), StructField(
                 "rawText", DataTypes.StringType, true, Metadata.empty())))
 
         val textDataFrame = sqlContext.createDataFrame(corpusRow, schema)
 
+        corpusRow.unpersist()
+
         val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(textDataFrame)
         println(indexer.labels().joinToString("\t"))
-        println(indexer.extractParamMap())
-        println(indexer.params().joinToString("\t"))
 
         val indexedTextDataFrame = indexer.transform(textDataFrame)
 
@@ -77,22 +80,59 @@ public class DocumentClassification() : Serializable {
 
         val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
 
-        val cvModel =  CountVectorizer()
+        return ngramsDataFrame
+    }
+
+    public fun createTfCorpus(ngramsDataFrame: DataFrame): DataFrame {
+        val cvModel = CountVectorizer()
                 .setInputCol("words")
                 .setOutputCol("features")
                 .setVocabSize(3)
                 .setMinDF(2.0)
-                .fit(wordsDataFrame)
+                .fit(ngramsDataFrame)
 
         val cvDataDrame = cvModel.transform(ngramsDataFrame)
+        return cvDataDrame
+    }
 
+    public fun createTfIdfCorpus(jsc : JavaSparkContext) {
+        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+        val sqlContext = SQLContext(jsc)
+        val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+
+        val parsedtrainDF = parseCorpus(sqlContext,trainDF)
+        val parsedCvDF = parseCorpus(sqlContext,cvDF)
+        val parsedTestDF = parseCorpus(sqlContext,testDF)
+
+        val hashingTF = hasingTf()
+        val hashedTrainDF = hashingTF.transform(parsedtrainDF)
+        val idfModel = setTfIdfModel(hashedTrainDF)
+
+        val trainTfIdfDF = idfModel.transform(hashedTrainDF).cache()
+        val trainData = convertDataFrameToLabeledPoints(trainTfIdfDF)
+
+        val hashedCVDF = hashingTF.transform(parsedCvDF)
+        val hashedTestDF = hasingTf().transform(parsedTestDF)
+
+        val cvTfIdfDF = idfModel.transform(hashedCVDF).cache()
+        val testTfIdfDF = idfModel.transform(hashedTestDF).cache()
+        val cvData = convertDataFrameToLabeledPoints(cvTfIdfDF)
+        val testData = convertDataFrameToLabeledPoints(testTfIdfDF)
+
+        val dt = DecisionTreeInSpark()
+        //dt.evaluateForest(data)
+        dt.evaluate(trainData, cvData, testData, 10)
+    }
+
+
+    public fun convertDataFrameToLabeledPoints(data: DataFrame): JavaRDD<LabeledPoint> {
         val converter = IndexToString()
                 .setInputCol("categoryIndex")
                 .setOutputCol("originalCategory")
-        val converted = converter.transform(cvDataDrame)
+        val converted = converter.transform(data)
 
 
-        val featureData = converted.select("features", "categoryIndex", "originalCategory")
+        val featureData = converted.select("idfFeatures", "categoryIndex", "originalCategory")
 
         for (r in featureData.take(3)) {
 
@@ -122,18 +162,21 @@ public class DocumentClassification() : Serializable {
         return labeledDataPoints
     }
 
-    public fun setTfIdf(corpus: DataFrame) {
+    public fun hasingTf(): HashingTF {
         val numFeatures = 2000
 
         val hashingTF = HashingTF().setInputCol("ngrams")
                 .setOutputCol("tfFeatures")
                 .setNumFeatures(numFeatures)
+        return hashingTF
+    }
 
-        val tfFeatures = hashingTF.transform(corpus)
+    public fun setTfIdfModel(corpus: DataFrame): IDFModel {
+        val idf = IDF().setInputCol("tfFeatures").setOutputCol("idfFeatures").setMinDocFreq(3)
 
-        val idfModel = setTfIdfModel(tfFeatures)
+        val idfModel = idf.fit(corpus)
 
-        val rescaledData = idfModel.transform(tfFeatures)
+        return idfModel
     }
 
     public fun applyTfIdf(corpus: DataFrame, hashingTF: HashingTF, idfModel: IDFModel): DataFrame {
@@ -142,14 +185,6 @@ public class DocumentClassification() : Serializable {
         val rescaledData = idfModel.transform(tfFeatures)
 
         return rescaledData
-    }
-
-    public fun setTfIdfModel(corpus: DataFrame): IDFModel {
-        val idf = IDF().setInputCol("tfFeatures").setOutputCol("idfFeatures")
-
-        val idfModel = idf.fit(corpus)
-
-        return idfModel
     }
 
 
@@ -161,8 +196,6 @@ public class DocumentClassification() : Serializable {
                 jsons[0] = jsons[0].substring(1)
                 jsons[jsons.lastIndex] = jsons[jsons.lastIndex].substringBeforeLast("]")
 
-
-
                 jsons.forEach { json ->
                     //println(cleanJson(json))
                     val reutersDoc = MAPPER.readValue(cleanJson(json), ReutersDocument::class.java)
@@ -170,13 +203,12 @@ public class DocumentClassification() : Serializable {
                     reutersDoc.body?.let { body ->
                         println(index++)
                         reutersDoc.body = reutersDoc.body?.replace("\n", "")
-                        writer.write(MAPPER.writeValueAsString(reutersDoc) + "\n")
+                        if (reutersDoc.topics != null || reutersDoc.topics?.intersect(topCategories)?.isNotEmpty() ?: false) {
+                            writer.write(MAPPER.writeValueAsString(reutersDoc) + "\n")
+                        }
                     }
-
                 }
-
             }
-
         }
     }
 
@@ -190,15 +222,12 @@ public class DocumentClassification() : Serializable {
 
         val jsc = JavaSparkContext(sparkConf)
 
-        val data = createCorpus(jsc)
-        val (trainData, cvData, testData) = data.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
-        trainData.cache()
-        cvData.cache()
-        testData.cache()
+        //val data = parseCorpus(jsc)
 
-        val dt = DecisionTreeInSpark()
+        createTfIdfCorpus(jsc)
+        //val dt = DecisionTreeInSpark()
         //dt.evaluateForest(data)
-        dt.evaluate(trainData, cvData, testData, 10)
+        //dt.evaluate(trainData, cvData, testData, 10)
         //println(dt.classProbabilities(trainData).joinToString("\n"))
         //dt.simpleDecisionTree(trainData,testData,10)
 
