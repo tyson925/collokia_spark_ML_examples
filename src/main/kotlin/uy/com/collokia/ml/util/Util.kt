@@ -43,7 +43,7 @@ public fun printMulticlassMetrics(evaulation: MulticlassMetrics): String {
 
 private fun printMatrix(matrix : Matrix,labels : DoubleArray) : String{
     val res = StringBuffer()
-    res.append("\t")
+    res.append("\t\t")
     labels.forEach { label ->
         res.append("${label},\t")
     }

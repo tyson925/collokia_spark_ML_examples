@@ -17,6 +17,7 @@ import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import scala.Tuple2
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
+import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
 import java.io.File
@@ -48,10 +49,16 @@ public class DocumentClassification() : Serializable {
 
         println("corpus size: " + corpus.count())
 
-        val corpusRow = corpus.flatMap { doc ->
+        val corpusRow = corpus.map { doc ->
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
             val content = doc.body + (doc.title ?: "")
-            topics.map { topic ->
+
+            if (topics.contains(subTopic)){
+                RowFactory.create(subTopic, content)
+            } else {
+                RowFactory.create("other", content)
+            }
+            /*topics.map { topic ->
                 subTopic?.let {
                     if (topic.equals(subTopic)) {
                         RowFactory.create(topic, content)
@@ -60,7 +67,7 @@ public class DocumentClassification() : Serializable {
                     }
                 } ?: RowFactory.create(topic, content)
 
-            }
+            }*/
         }
 
         corpus.unpersist()
@@ -139,7 +146,9 @@ public class DocumentClassification() : Serializable {
         val testData = convertDataFrameToLabeledPoints(normTestTfIdfDF).cache()
 
         val dt = DecisionTreeInSpark()
-        dt.buildDecisionTreeModel(trainData, cvData, 2)
+        val svm = SVMSpark()
+        svm.simpleSVM(trainData,cvData,2)
+        //dt.buildDecisionTreeModel(trainData, cvData, 2)
         //dt.evaluateSimpleForest(trainData, cvData, 10)
         //dt.evaluate(trainData, cvData, testData, 2)
         //dt.evaluateForest(trainData, cvData, 10)
