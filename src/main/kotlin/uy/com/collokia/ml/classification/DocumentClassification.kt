@@ -37,7 +37,6 @@ public class DocumentClassification() : Serializable {
         //val topCategories = listOf("earn", "acq")
     }
 
-
     public fun parseCorpus(sqlContext: SQLContext, corpusInRaw: JavaRDD<String>, subTopic: String?): DataFrame {
 
         val corpus = corpusInRaw.map { line ->
@@ -46,7 +45,6 @@ public class DocumentClassification() : Serializable {
         }
 
         corpusInRaw.unpersist()
-
 
         val corpusRow = corpus.map { doc ->
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
@@ -57,20 +55,7 @@ public class DocumentClassification() : Serializable {
             } else {
                 RowFactory.create("other", content)
             }
-            /*val res = topics.map { topic ->
-                subTopic?.let {
-                    if (topic.equals(subTopic)) {
-                        RowFactory.create(topic, content)
-                    } else {
-                        RowFactory.create("other", content)
-                    }
-                } ?: RowFactory.create(topic, content)
-
-            }
-            res
-            */
             row
-
         }
 
         println("corpus size: " + corpusRow.count())
@@ -83,6 +68,12 @@ public class DocumentClassification() : Serializable {
         val textDataFrame = sqlContext.createDataFrame(corpusRow, schema)
 
         corpusRow.unpersist()
+
+        return textDataFrame
+    }
+
+
+    public fun exractFeaturesFromCorpus(textDataFrame: DataFrame) : DataFrame{
 
         val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(textDataFrame)
         println(indexer.labels().joinToString("\t"))
@@ -99,7 +90,7 @@ public class DocumentClassification() : Serializable {
         //val ngramTransformer = NGram().setInputCol("filteredWords").setOutputCol("ngrams").setN(4)
         val ngramTransformer = NGram().setInputCol("words").setOutputCol("ngrams").setN(4)
 
- //       val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
+        //       val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
         val ngramsDataFrame = ngramTransformer.transform(wordsDataFrame)
 
         //return ngramsDataFrame
@@ -125,8 +116,8 @@ public class DocumentClassification() : Serializable {
         //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
         //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
         val results = topCategories.map { category ->
-          val parsedCorpus =   parseCorpus(sqlContext,corpusInRaw,category)
-            val hashingTF = hasingTf()
+            val parsedCorpus = parseCorpus(sqlContext, corpusInRaw, category)
+            val hashingTF = hasingTf().setNumFeatures(2000)
             val hashedCorpusDF = hashingTF.transform(parsedCorpus)
             //val parsedtrainDF = parseCorpus(sqlContext, trainDF, category)
             //val parsedCvDF = parseCorpus(sqlContext, cvDF, "earn")
@@ -135,11 +126,11 @@ public class DocumentClassification() : Serializable {
 
             val idfModel = setTfIdfModel(hashedTrainDF)
 
-            //val trainTfIdfDF = idfModel.transform(hashedTrainDF)
-            val trainTfIdfDF = createTfCorpus(hashedTrainDF)
+            val trainTfIdfDF = idfModel.transform(hashedTrainDF)
+            //val trainTfIdfDF = createTfCorpus(hashedTrainDF)
 
-            //val normalizer = Normalizer().setInputCol("idfFeatures").setOutputCol("normIdfFeatures").setP(1.0)
-            val normalizer = Normalizer().setInputCol("features").setOutputCol("normIdfFeatures").setP(1.0)
+            val normalizer = Normalizer().setInputCol("idfFeatures").setOutputCol("normIdfFeatures").setP(1.0)
+            //val normalizer = Normalizer().setInputCol("features").setOutputCol("normIdfFeatures").setP(1.0)
 
             val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)
 
@@ -151,8 +142,8 @@ public class DocumentClassification() : Serializable {
             //val hashedTestDF = hasingTf().transform(parsedTestDF)
 
             //val cvTfIdfDF = idfModel.transform(hashedCVDF)
-            //val testTfIdfDF = idfModel.transform(hashedTestDF)
-            val testTfIdfDF = createTfCorpus(hashedTestDF)
+            val testTfIdfDF = idfModel.transform(hashedTestDF)
+            //val testTfIdfDF = createTfCorpus(hashedTestDF)
 
             //val normCvTfIdfDF = normalizer.transform(cvTfIdfDF)
             //val cvData = convertDataFrameToLabeledPoints(normCvTfIdfDF).cache()
@@ -165,10 +156,11 @@ public class DocumentClassification() : Serializable {
             //svm.simpleSVM(trainData,cvData,2)
             val Fmeasure = dt.buildDecisionTreeModel(trainData, testData, 2)
             //dt.evaluateSimpleForest(trainData, cvData, 10)
-            //dt.evaluate(trainData, cvData, testData, 2)
+            //val Fmeasure = dt.evaluate(trainData, testData, testData, 2)
             //dt.evaluateForest(trainData, cvData, 10)
 //CrossValidator().se
-            Pair(category,Fmeasure)
+            Pair(category, Fmeasure)
+
         }.joinToString("\n")
 
         println(results)
