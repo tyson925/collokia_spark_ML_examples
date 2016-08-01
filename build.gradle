@@ -39,6 +39,7 @@ task oneJar(type: OneJar) {
 }
 
 dependencies {
+    compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.0'
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
     compile "info.bliki.wiki:bliki-core:3.0.19"

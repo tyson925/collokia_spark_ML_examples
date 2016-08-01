@@ -18,7 +18,7 @@ import java.io.Serializable
 
 public class DecisionTreeInSpark() : Serializable {
 
-    public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
+    public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int)  : Double{
 
         val impurity = "gini"
         val depth = 10
@@ -27,15 +27,18 @@ public class DecisionTreeInSpark() : Serializable {
         val model = buildDecisionTreeModel(trainData, numClasses, impurity, depth, bins)
 
         println("evaulate decision tree model...")
-        if (numClasses == 2) {
+        val FMeasure = if (numClasses == 2) {
             val evaulationBin = getBinaryClassificationMetrics(model, cvData)
             val evaulation = getMulticlassMetrics(model, cvData)
             println(printMulticlassMetrics(evaulation))
             println(printBinaryClassificationMetrics(evaulationBin))
+            evaulation.fMeasure()
         } else {
             val evaulation = getMulticlassMetrics(model, cvData)
             println(printMulticlassMetrics(evaulation))
+            evaulation.fMeasure()
         }
+        return FMeasure
     }
 
     public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {

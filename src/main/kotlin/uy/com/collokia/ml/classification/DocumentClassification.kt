@@ -47,18 +47,17 @@ public class DocumentClassification() : Serializable {
 
         corpusInRaw.unpersist()
 
-        println("corpus size: " + corpus.count())
 
         val corpusRow = corpus.map { doc ->
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
             val content = doc.body + (doc.title ?: "")
 
-            if (topics.contains(subTopic)){
+            val row = if (topics.contains(subTopic)) {
                 RowFactory.create(subTopic, content)
             } else {
                 RowFactory.create("other", content)
             }
-            /*topics.map { topic ->
+            /*val res = topics.map { topic ->
                 subTopic?.let {
                     if (topic.equals(subTopic)) {
                         RowFactory.create(topic, content)
@@ -67,8 +66,14 @@ public class DocumentClassification() : Serializable {
                     }
                 } ?: RowFactory.create(topic, content)
 
-            }*/
+            }
+            res
+            */
+            row
+
         }
+
+        println("corpus size: " + corpusRow.count())
 
         corpus.unpersist()
 
@@ -91,16 +96,20 @@ public class DocumentClassification() : Serializable {
 
         val filteredWordsDataFrame = remover.transform(wordsDataFrame)
 
-        val ngramTransformer = NGram().setInputCol("filteredWords").setOutputCol("ngrams").setN(4)
+        //val ngramTransformer = NGram().setInputCol("filteredWords").setOutputCol("ngrams").setN(4)
+        val ngramTransformer = NGram().setInputCol("words").setOutputCol("ngrams").setN(4)
 
-        val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
+ //       val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
+        val ngramsDataFrame = ngramTransformer.transform(wordsDataFrame)
 
-        return ngramsDataFrame
+        //return ngramsDataFrame
+        return filteredWordsDataFrame
     }
 
     public fun createTfCorpus(ngramsDataFrame: DataFrame): DataFrame {
         val cvModel = CountVectorizer()
-                .setInputCol("words")
+                //.setInputCol("ngrams")
+                .setInputCol("filteredWords")
                 .setOutputCol("features")
                 .setVocabSize(3)
                 .setMinDF(2.0)
@@ -113,46 +122,56 @@ public class DocumentClassification() : Serializable {
     public fun createTfIdfCorpus(jsc: JavaSparkContext) {
         val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
         val sqlContext = SQLContext(jsc)
-        val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+        //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+        //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
+        val results = topCategories.map { category ->
+          val parsedCorpus =   parseCorpus(sqlContext,corpusInRaw,category)
+            val hashingTF = hasingTf()
+            val hashedCorpusDF = hashingTF.transform(parsedCorpus)
+            //val parsedtrainDF = parseCorpus(sqlContext, trainDF, category)
+            //val parsedCvDF = parseCorpus(sqlContext, cvDF, "earn")
+            //val parsedTestDF = parseCorpus(sqlContext, testDF, category)
+            val (hashedTrainDF, hashedTestDF) = hashedCorpusDF.randomSplit(doubleArrayOf(0.9, 0.1))
 
-        val parsedtrainDF = parseCorpus(sqlContext, trainDF, "acq")
-        val parsedCvDF = parseCorpus(sqlContext, cvDF, "acq")
-        val parsedTestDF = parseCorpus(sqlContext, testDF, "acq")
+            val idfModel = setTfIdfModel(hashedTrainDF)
 
-        val hashingTF = hasingTf()
-        val hashedTrainDF = hashingTF.transform(parsedtrainDF)
-        val idfModel = setTfIdfModel(hashedTrainDF)
+            //val trainTfIdfDF = idfModel.transform(hashedTrainDF)
+            val trainTfIdfDF = createTfCorpus(hashedTrainDF)
 
-        val trainTfIdfDF = idfModel.transform(hashedTrainDF)
+            //val normalizer = Normalizer().setInputCol("idfFeatures").setOutputCol("normIdfFeatures").setP(1.0)
+            val normalizer = Normalizer().setInputCol("features").setOutputCol("normIdfFeatures").setP(1.0)
 
-        val normalizer = Normalizer().setInputCol("idfFeatures").setOutputCol("normIdfFeatures").setP(1.0)
+            val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)
 
-        val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)
+            val trainData = convertDataFrameToLabeledPoints(normTrainTfIdfDF).cache()
 
-        val trainData = convertDataFrameToLabeledPoints(normTrainTfIdfDF).cache()
+            normTrainTfIdfDF.unpersist()
 
-        normTrainTfIdfDF.unpersist()
+            //val hashedCVDF = hashingTF.transform(parsedCvDF)
+            //val hashedTestDF = hasingTf().transform(parsedTestDF)
 
-        val hashedCVDF = hashingTF.transform(parsedCvDF)
-        val hashedTestDF = hasingTf().transform(parsedTestDF)
+            //val cvTfIdfDF = idfModel.transform(hashedCVDF)
+            //val testTfIdfDF = idfModel.transform(hashedTestDF)
+            val testTfIdfDF = createTfCorpus(hashedTestDF)
 
-        val cvTfIdfDF = idfModel.transform(hashedCVDF)
-        val testTfIdfDF = idfModel.transform(hashedTestDF)
+            //val normCvTfIdfDF = normalizer.transform(cvTfIdfDF)
+            //val cvData = convertDataFrameToLabeledPoints(normCvTfIdfDF).cache()
+            //normCvTfIdfDF.unpersist()
+            val normTestTfIdfDF = normalizer.transform(testTfIdfDF)
+            val testData = convertDataFrameToLabeledPoints(normTestTfIdfDF).cache()
 
-        val normCvTfIdfDF = normalizer.transform(cvTfIdfDF)
-        val cvData = convertDataFrameToLabeledPoints(normCvTfIdfDF).cache()
-        normCvTfIdfDF.unpersist()
-        val normTestTfIdfDF = normalizer.transform(testTfIdfDF)
-        val testData = convertDataFrameToLabeledPoints(normTestTfIdfDF).cache()
-
-        val dt = DecisionTreeInSpark()
-        val svm = SVMSpark()
-        svm.simpleSVM(trainData,cvData,2)
-        //dt.buildDecisionTreeModel(trainData, cvData, 2)
-        //dt.evaluateSimpleForest(trainData, cvData, 10)
-        //dt.evaluate(trainData, cvData, testData, 2)
-        //dt.evaluateForest(trainData, cvData, 10)
+            val dt = DecisionTreeInSpark()
+            val svm = SVMSpark()
+            //svm.simpleSVM(trainData,cvData,2)
+            val Fmeasure = dt.buildDecisionTreeModel(trainData, testData, 2)
+            //dt.evaluateSimpleForest(trainData, cvData, 10)
+            //dt.evaluate(trainData, cvData, testData, 2)
+            //dt.evaluateForest(trainData, cvData, 10)
 //CrossValidator().se
+            Pair(category,Fmeasure)
+        }.joinToString("\n")
+
+        println(results)
     }
 
 
@@ -165,7 +184,7 @@ public class DocumentClassification() : Serializable {
 
         val featureData = converted.select("normIdfFeatures", "categoryIndex", "originalCategory")
 
-        for (r in featureData.take(3)) {
+        /*for (r in featureData.take(3)) {
 
             val features = r.getAs<SparseVector>(0)
             val label = r.getDouble(1)
@@ -173,7 +192,7 @@ public class DocumentClassification() : Serializable {
             System.out.println(features)
             println(label)
             println(original)
-        }
+        }*/
 
         val labeledDataPoints = featureData.toJavaRDD().map({ feature ->
             val features = feature.getAs<SparseVector>(0)
@@ -196,7 +215,8 @@ public class DocumentClassification() : Serializable {
     public fun hasingTf(): HashingTF {
         val numFeatures = 2000
 
-        val hashingTF = HashingTF().setInputCol("ngrams")
+        //val hashingTF = HashingTF().setInputCol("ngrams")
+        val hashingTF = HashingTF().setInputCol("filteredWords")
                 .setOutputCol("tfFeatures")
                 .setNumFeatures(numFeatures)
         return hashingTF
@@ -226,7 +246,7 @@ public class DocumentClassification() : Serializable {
                     reutersDoc.body?.let { body ->
                         println(index++)
                         reutersDoc.body = reutersDoc.body?.replace("\n", "")
-                        if (reutersDoc.topics != null || reutersDoc.topics?.intersect(topCategories)?.isNotEmpty() ?: false) {
+                        if (reutersDoc.topics != null && reutersDoc.topics.intersect(topCategories).isNotEmpty()) {
                             writer.write(MAPPER.writeValueAsString(reutersDoc) + "\n")
                         }
                     }
