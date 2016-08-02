@@ -9,7 +9,12 @@ import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import scala.Tuple2
-
+import weka.core.Attribute
+import weka.core.Instances
+import weka.core.SparseInstance
+import weka.core.converters.ArffSaver
+import java.util.*
+import java.io.File
 
 public fun getMulticlassMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>): MulticlassMetrics {
 
@@ -88,3 +93,41 @@ public fun classProbabilities(data: JavaRDD<LabeledPoint>): DoubleArray {
     return counts.map({ it -> it.toDouble() / counts.sum() }).toDoubleArray()
 }
 
+public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>) : Instances {
+
+    val numAtts = data.first().features().size()
+    val atts = ArrayList<Attribute>(numAtts)
+    val classAttribute = Attribute("class", numAtts)
+    atts.add(classAttribute)
+    (1..numAtts).forEach { att ->
+        atts.add(Attribute("Attribute" + att, att))
+    }
+
+
+    val numInstances = data.count()
+    val dataset = Instances("Dataset", atts, numInstances.toInt())
+    //dataset.insertAttributeAt(classAttribute,dataset.numAttributes())
+    data.collect().forEach { labeledPoint ->
+        val wekaInstance = SparseInstance(1.0,labeledPoint.features().toArray())
+
+        if (labeledPoint.label() == 1.0){
+            println(wekaInstance)
+            wekaInstance.setValue(classAttribute,labeledPoint.label())
+            println(wekaInstance)
+        }
+
+        wekaInstance.setValue(classAttribute,labeledPoint.label())
+        dataset.add(wekaInstance)
+    }
+
+    return dataset
+
+}
+
+public fun saveArff(dataSet : Instances,outFileName : String){
+    val saver = ArffSaver()
+    saver.setInstances(dataSet)
+    saver.setFile(File(outFileName))
+    saver.writeBatch()
+    println("${outFileName} was written...")
+}

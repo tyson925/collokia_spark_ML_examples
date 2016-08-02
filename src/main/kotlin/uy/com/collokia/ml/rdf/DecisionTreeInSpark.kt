@@ -106,8 +106,9 @@ public class DecisionTreeInSpark() : Serializable {
     public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
         val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
 
-        val resultsInFmeasure = tenFolds.map { fold ->
+        val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
+            println("number of fold:\t${i}")
             val Fmeasure = buildDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }

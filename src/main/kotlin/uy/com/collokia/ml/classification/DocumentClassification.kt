@@ -18,16 +18,22 @@ import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.svm.SVMSpark
+import uy.com.collokia.ml.util.convertLabeledPointToArff
+import uy.com.collokia.ml.util.saveArff
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
+import weka.core.Attribute
+import weka.core.Instances
+import weka.core.SparseInstance
 import java.io.File
 import java.io.Serializable
+import java.util.*
 
 public data class ReutersDocument(val title: String?, var body: String?, val date: String,
                                   val topics: List<String>?, val places: List<String>?, val organisations: List<String>?, val id: Int) : Serializable
 
 //required "var" according to `Encoders.bean`
-public data class ReutersRow(var category : String, var content : String) : Serializable
+public data class ReutersRow(var category: String, var content: String) : Serializable
 
 public class DocumentClassification() : Serializable {
 
@@ -40,7 +46,7 @@ public class DocumentClassification() : Serializable {
         //val topCategories = listOf("earn", "acq")
     }
 
-    public fun parseCorpus(sparkSession : SparkSession, corpusInRaw: JavaRDD<String>, subTopic: String?): Dataset<ReutersRow> {
+    public fun parseCorpus(sparkSession: SparkSession, corpusInRaw: JavaRDD<String>, subTopic: String?): Dataset<ReutersRow> {
 
         val corpusRow = corpusInRaw.map { line ->
             val doc = MAPPER.readValue(line, ReutersDocument::class.java)
@@ -85,7 +91,7 @@ public class DocumentClassification() : Serializable {
     }
 
 
-    public fun exractFeaturesFromCorpus(textDataFrame: Dataset<ReutersRow>) : Dataset<Row>{
+    public fun exractFeaturesFromCorpus(textDataFrame: Dataset<ReutersRow>): Dataset<Row> {
 
         val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(textDataFrame)
         println(indexer.labels().joinToString("\t"))
@@ -216,7 +222,11 @@ public class DocumentClassification() : Serializable {
 
             val dt = DecisionTreeInSpark()
 
-            val Fmeasure = dt.evaulate10Fold(data)
+            val arffData =convertLabeledPointToArff(data)
+            saveArff(arffData,"./data/reuters/arff/${category}.arff")
+
+            //val Fmeasure = dt.evaulate10Fold(data)
+            val Fmeasure = 1.0
             //dt.evaluateSimpleForest(trainData, cvData, 10)
             //val Fmeasure = dt.evaluate(trainData, testData, testData, 2)
             //dt.evaluateForest(trainData, cvData, 10)
@@ -226,29 +236,6 @@ public class DocumentClassification() : Serializable {
         }.joinToString("\n")
 
         println(results)
-    }
-
-
-    public fun convertDataFrameToArff(data: JavaRDD<LabeledPoint>){
-
-        val numAtts = data.first().features().size()
-        /*val atts = ArrayList<Attribute>(numAtts)
-        for (int att = 0; att < numAtts; att++)
-        {
-            atts.addElement(new Attribute("Attribute" + att, att));
-        }
-
-        val numInstances = data.count()
-        val dataset =  Instances("Dataset", atts, numInstances)
-
-        data.map { labeledPoint ->
-            val sparseVector = labeledPoint.features().toSparse()
-            sparseVector.indices().forEach { i ->
-                sparseVector.values()[i]
-            }
-            labeledPoint.label()
-        }*/
-
     }
 
 
@@ -275,7 +262,7 @@ public class DocumentClassification() : Serializable {
             val features = feature.getAs<SparseVector>(0)
             val label = feature.getDouble(1)
 //            println(label)
-            org.apache.spark.mllib.regression.LabeledPoint(label, org.apache.spark.mllib.linalg.SparseVector(features.size(),features.indices(),features.values()))
+            org.apache.spark.mllib.regression.LabeledPoint(label, org.apache.spark.mllib.linalg.SparseVector(features.size(), features.indices(), features.values()))
         })
 
         println("number of data: " + labeledDataPoints.count())
