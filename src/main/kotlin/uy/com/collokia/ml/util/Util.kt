@@ -1,8 +1,10 @@
 package uy.com.collokia.ml.util
 
+//import org.apache.spark.ml.tree.DecisionTreeModel
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
+import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
@@ -12,8 +14,8 @@ import scala.Tuple2
 public fun getMulticlassMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>): MulticlassMetrics {
 
     val predictionsAndLabels = data.map { instance ->
-
-        Tuple2(model.predict(instance.features()) as Any, instance.label() as Any)
+//model.
+        Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return MulticlassMetrics(predictionsAndLabels.rdd())
 }
@@ -21,7 +23,7 @@ public fun getMulticlassMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledP
 public fun getBinaryClassificationMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>): BinaryClassificationMetrics {
     val predictionsAndLabels = data.map { instance ->
 
-        Tuple2(model.predict(instance.features()) as Any, instance.label() as Any)
+        Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return BinaryClassificationMetrics(predictionsAndLabels.rdd(),100)
 }

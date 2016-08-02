@@ -12,30 +12,36 @@ import org.apache.spark.ml.tuning.CrossValidator
 import org.apache.spark.ml.tuning.ParamGridBuilder
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.DecisionTree
+//import org.apache.spark.mllib.regression.LabeledPoint//
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.tree.model.RandomForestModel
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.ReutersRow
 import uy.com.collokia.ml.util.*
+import uy.com.collokia.scala.ClassTagger
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
+import uy.com.collokia.util.formatterToTimePrint
+import uy.com.collokia.util.measureTimeInMillis
 import java.io.Serializable
 
 
 public class DecisionTreeInSpark() : Serializable {
 
 
-    public fun evaulate10Fold(dataInRaw: Dataset<ReutersRow>) {
+    public fun evaulate10FoldDF(dataInRaw: Dataset<ReutersRow>) {
 
         val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(dataInRaw)
         println("labels:\t ${indexer.labels().joinToString("\t")}")
 
-        val tokenizer = Tokenizer().setInputCol("rawText").setOutputCol("words")
+        val tokenizer = Tokenizer().setInputCol("content").setOutputCol("words")
 
         val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
 
@@ -60,14 +66,15 @@ public class DecisionTreeInSpark() : Serializable {
         // ParamGridBuilder was applied to construct a grid of parameters to search over.
         val paramGrid = ParamGridBuilder()
                 //.addGrid(decisionTree.impurity(), arrayOf("gini", "entropy").iterator() as Iterable<String>)
-                .addGrid(decisionTree.maxDepth(), intArrayOf(10, 20, 30))
-                .addGrid(decisionTree.maxBins(), intArrayOf(40, 300))
+                //.addGrid(decisionTree.maxDepth(), intArrayOf(10, 20, 30))
+                //.addGrid(decisionTree.maxBins(), intArrayOf(40, 300))
                 .build()
 
 
         val evaulator = MulticlassClassificationEvaluator().setLabelCol(indexer.outputCol).setPredictionCol("prediction")
+
                 // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
-                .setMetricName("f1")
+                evaulator.set("metricName","f1(1.0)")
 
         // We now treat the Pipeline as an Estimator, wrapping it in a CrossValidator instance.
 // This will allow us to jointly choose parameters for all Pipeline stages.
@@ -86,6 +93,7 @@ public class DecisionTreeInSpark() : Serializable {
         val model = cvModel.bestModel()
 
         val avgMetrics = cvModel.avgMetrics()
+
         val paramsToScore = cvModel.estimatorParamMaps.mapIndexed { i, paramMap ->
             Tuple2(paramMap, avgMetrics[i])
         }.sortedByDescending { stat -> stat._2 }
@@ -95,11 +103,25 @@ public class DecisionTreeInSpark() : Serializable {
 
     }
 
+    public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
+        val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
+
+        val resultsInFmeasure = tenFolds.map { fold ->
+            val (trainData,testData) = fold
+            val Fmeasure = buildDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            Fmeasure
+        }
+        return resultsInFmeasure.average()
+    }
+
+
     public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
         val impurity = "gini"
         val depth = 10
         val bins = 300
+
+
 
         println("train a decision tree with classes ${numClasses} and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
         val model = buildDecisionTreeModel(trainData, numClasses, impurity, depth, bins)
@@ -286,53 +308,58 @@ public class DecisionTreeInSpark() : Serializable {
     }
 
     public fun runTenFold() {
-        val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
+        val time = measureTimeInMillis {
+            val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
 
-        val jsc = JavaSparkContext(sparkConf)
+            val jsc = JavaSparkContext(sparkConf)
 
-        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
-        val sparkSession = SparkSession.builder()
-                .master("local")
-                .appName("reuters classification")
-                .getOrCreate()
-        //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
-        //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
-val docClass = DocumentClassification()
-        val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "acq")
-        evaulate10Fold(parsedCorpus)
+            val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+            val sparkSession = SparkSession.builder()
+                    .master("local")
+                    .appName("reuters classification")
+                    .getOrCreate()
+            //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+            //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
+            val docClass = DocumentClassification()
+            val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
+            evaulate10FoldDF(parsedCorpus)
 
+        }
+        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
 
 
     public fun runRDF() {
-        val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
+        val time = measureTimeInMillis {
+            val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
 
-        val jsc = JavaSparkContext(sparkConf)
+            val jsc = JavaSparkContext(sparkConf)
 
-        val rawData = jsc.textFile("./data/DT/covtype.data.gz")
+            val rawData = jsc.textFile("./data/DT/covtype.data.gz")
 
-        val data = rawData.map { line ->
-            val values = line.split(',').map({ value -> value.toDouble() })
-            val featureVector = Vectors.dense(values.toDoubleArray())
-            val label = values.last() - 1
-            LabeledPoint(label, featureVector)
+            val data = rawData.map { line ->
+                val values = line.split(',').map({ value -> value.toDouble() })
+                val featureVector = Vectors.dense(values.toDoubleArray())
+                val label = values.last() - 1
+                LabeledPoint(label, featureVector)
+            }
+
+            val (trainData, cvData, testData) = data.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
+            trainData.cache()
+            cvData.cache()
+            testData.cache()
+
+            //buildDecisionTreeModel(trainData, cvData)
+            randomClassifier(trainData, cvData)
+            //evaluate(trainData, cvData, testData)
+            evaluateCategorical(rawData)
+            evaluateSimpleForest(rawData, 7)
+
+            trainData.unpersist()
+            cvData.unpersist()
+            testData.unpersist()
         }
-
-        val (trainData, cvData, testData) = data.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
-        trainData.cache()
-        cvData.cache()
-        testData.cache()
-
-        //buildDecisionTreeModel(trainData, cvData)
-        randomClassifier(trainData, cvData)
-        //evaluate(trainData, cvData, testData)
-        evaluateCategorical(rawData)
-        evaluateSimpleForest(rawData, 7)
-
-        trainData.unpersist()
-        cvData.unpersist()
-        testData.unpersist()
-
+        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
 
     }
 
