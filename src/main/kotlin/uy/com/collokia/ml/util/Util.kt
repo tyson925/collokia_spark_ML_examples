@@ -12,7 +12,9 @@ import scala.Tuple2
 import weka.core.Attribute
 import weka.core.Instances
 import weka.core.SparseInstance
+import weka.core.converters.ArffLoader
 import weka.core.converters.ArffSaver
+import weka.core.converters.ConverterUtils
 import java.util.*
 import java.io.File
 
@@ -97,7 +99,10 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>) : Instances {
 
     val numAtts = data.first().features().size()
     val atts = ArrayList<Attribute>(numAtts)
-    val classAttribute = Attribute("class", numAtts)
+    val classValues = ArrayList<String>(2)
+    classValues.add("negative")
+    classValues.add("positive")
+    val classAttribute = Attribute("class", classValues,numAtts)
     atts.add(classAttribute)
     (1..numAtts).forEach { att ->
         atts.add(Attribute("Attribute" + att, att))
@@ -130,4 +135,12 @@ public fun saveArff(dataSet : Instances,outFileName : String){
     saver.setFile(File(outFileName))
     saver.writeBatch()
     println("${outFileName} was written...")
+}
+
+
+public fun loadArff(arffFileName : String) : Instances {
+    val source = ConverterUtils.DataSource(arffFileName)
+    val data = source.getDataSet()
+    println("load data from ${arffFileName}")
+    return data
 }
