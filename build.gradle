@@ -49,7 +49,7 @@ dependencies {
     compile "org.apache.spark:spark-sql_2.10:${version_Spark}"
     compile "org.apache.spark:spark-core_2.10:${version_Spark}"
     compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
-    compile "org.apache.spark:spark-streaming-twitter_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-streaming-twitter_2.10:1.6.2"
     compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
     compile "com.cybozu.labs:langdetect:1.1-20120112"
     compile ("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR"){

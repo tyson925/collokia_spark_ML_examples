@@ -158,7 +158,7 @@ public class LastFmALS() {
                 // Result is a collection of (user,negative-item) tuples
                 res.addAll(negative.map({ itemID -> Tuple2(userID, itemID) }))
             }
-            res
+            res.iterator()
         }
 
 // Make predictions on the rest:

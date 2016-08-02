@@ -27,7 +27,7 @@ public fun getBinaryClassificationMetrics(model: DecisionTreeModel, data: JavaRD
 }
 
 public fun printMulticlassMetrics(evaulation: MulticlassMetrics): String {
-    val res = StringBuffer("F-measure:\t${evaulation.fMeasure()},\tprecision:${evaulation.precision()},\trecall:\t${evaulation.recall()}\n")
+    val res = StringBuffer()
     res.append("W. F-measure:\t${evaulation.weightedFMeasure()},\tW. precision:${evaulation.weightedPrecision()},\tW. recall:\t${evaulation.weightedRecall()}\n")
     res.append("label stats:\n")
     println("labels:\t"+evaulation.labels().joinToString("\t"))

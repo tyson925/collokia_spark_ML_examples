@@ -6,7 +6,6 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.DecisionTreeClassifier
-import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.*
 import org.apache.spark.ml.tuning.CrossValidator
@@ -18,11 +17,12 @@ import org.apache.spark.mllib.tree.DecisionTree
 import org.apache.spark.mllib.tree.RandomForest
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.tree.model.RandomForestModel
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SparkSession
 import scala.Tuple2
-import scala.collection.Iterable
 import uy.com.collokia.ml.classification.DocumentClassification
+import uy.com.collokia.ml.classification.ReutersRow
 import uy.com.collokia.ml.util.*
 import java.io.Serializable
 
@@ -30,7 +30,7 @@ import java.io.Serializable
 public class DecisionTreeInSpark() : Serializable {
 
 
-    public fun evaulate10Fold(dataInRaw: DataFrame) {
+    public fun evaulate10Fold(dataInRaw: Dataset<ReutersRow>) {
 
         val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(dataInRaw)
         println("labels:\t ${indexer.labels().joinToString("\t")}")
@@ -65,7 +65,7 @@ public class DecisionTreeInSpark() : Serializable {
                 .build()
 
 
-        val evaulator = MulticlassClassificationEvaluator().setLabelCol("categoryIndex").setPredictionCol("prediction")
+        val evaulator = MulticlassClassificationEvaluator().setLabelCol(indexer.outputCol).setPredictionCol("prediction")
                 // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
                 .setMetricName("f1")
 
@@ -139,7 +139,7 @@ public class DecisionTreeInSpark() : Serializable {
                     }
                 }
 
-        val sortedEvaulations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure() }).reversed().map { metricsData ->
+        val sortedEvaulations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
             Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
         }
 
@@ -149,8 +149,8 @@ public class DecisionTreeInSpark() : Serializable {
 
         val model = DecisionTree.trainClassifier(
                 trainData.union(cvData), numClasses, mapOf<Int, Int>(), bestTreePoperties.first, bestTreePoperties.second, bestTreePoperties.third)
-        println(getMulticlassMetrics(model, testData).precision())
-        println(getMulticlassMetrics(model, trainData.union(cvData)).precision())
+        println(getMulticlassMetrics(model, testData).weightedPrecision())
+        println(getMulticlassMetrics(model, trainData.union(cvData)).weightedPrecision())
         return getMulticlassMetrics(model, testData).fMeasure(1.0)
     }
 
@@ -189,8 +189,8 @@ public class DecisionTreeInSpark() : Serializable {
                             val model = DecisionTree.trainClassifier(
                                     trainData, 7, mapOf(10 to 4, 11 to 40), impurity, depth, bins)
 
-                            val trainAccuracy = getMulticlassMetrics(model, trainData).precision()
-                            val cvAccuracy = getMulticlassMetrics(model, cvData).precision()
+                            val trainAccuracy = getMulticlassMetrics(model, trainData).accuracy()
+                            val cvAccuracy = getMulticlassMetrics(model, cvData).accuracy()
                             // Return train and CV accuracy
                             Tuple2(Triple(impurity, depth, bins), Tuple2(trainAccuracy, cvAccuracy))
                         }
@@ -202,7 +202,7 @@ public class DecisionTreeInSpark() : Serializable {
 
         val model = DecisionTree.trainClassifier(
                 trainData.union(cvData), 7, mapOf(10 to 4, 11 to 40), "entropy", 30, 300)
-        println(getMulticlassMetrics(model, testData).precision())
+        println(getMulticlassMetrics(model, testData).weightedPrecision())
 
         trainData.unpersist()
         cvData.unpersist()
@@ -291,11 +291,14 @@ public class DecisionTreeInSpark() : Serializable {
         val jsc = JavaSparkContext(sparkConf)
 
         val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
-        val sqlContext = SQLContext(jsc)
+        val sparkSession = SparkSession.builder()
+                .master("local")
+                .appName("reuters classification")
+                .getOrCreate()
         //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
         //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
 val docClass = DocumentClassification()
-        val parsedCorpus = docClass.parseCorpus(sqlContext, corpusInRaw, "acq")
+        val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "acq")
         evaulate10Fold(parsedCorpus)
 
     }
