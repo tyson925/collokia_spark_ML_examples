@@ -8,14 +8,28 @@ import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.util.MLUtils
 import scala.Tuple2
-import uy.com.collokia.ml.util.predicateRandomForest
-import uy.com.collokia.ml.util.predicateSVM
-import uy.com.collokia.ml.util.printBinaryClassificationMetrics
-import uy.com.collokia.ml.util.printMulticlassMetrics
+import uy.com.collokia.ml.util.*
+import uy.com.collokia.scala.ClassTagger
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
 import java.io.Serializable
 
 public class SVMSpark() : Serializable {
+
+
+    public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
+        val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
+
+        val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
+            val (trainData,testData) = fold
+            println("number of fold:\t${i}")
+            val Fmeasure = evaulateSVM(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            Fmeasure
+        }
+        return resultsInFmeasure.average()
+    }
 
     public fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int): SVMModel {
 // Run training algorithm to build the model
@@ -29,25 +43,14 @@ public class SVMSpark() : Serializable {
 
         val model = buildSimpleSVM(trainData, numClasses)
 
-
         trainData.unpersist()
 
         println("evaulate decision tree model...")
 
-        val evaulateTest = predicateSVM(model, cvData)
-        val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(evaulateTest, 100)
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            println(printBinaryClassificationMetrics(evaulationBin))
-            evaulation.fMeasure(1.0)
-        } else {
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            evaulation.fMeasure(1.0)
-        }
+        val testPrediction = predicateSVM(model, cvData)
+        val FMeasure = evaulateAndPrintPrediction(numClasses,testPrediction)
 
-// Clear the default threshold.
+/*// Clear the default threshold.
         model.clearThreshold()
 
 
@@ -61,7 +64,7 @@ public class SVMSpark() : Serializable {
         val metrics = BinaryClassificationMetrics(scoreAndLabels.rdd())
 
         val auROC = metrics.areaUnderROC()
-        println("areaUnderROC:\t${auROC}")
+        println("areaUnderROC:\t${auROC}")*/
         return FMeasure
     }
 

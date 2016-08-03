@@ -32,6 +32,7 @@ public class RandomForestInSpark(){
             val Fmeasure = evaulateSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
+
         return resultsInFmeasure.average()
     }
 
@@ -42,8 +43,6 @@ public class RandomForestInSpark(){
         val maxDepth = 10
         val maxBin = 300
         val numTree = 50
-
-        //10 to 4, 11 to 40
 
         val forestModel = buildSimpleForest(trainData,numClasses,categoricalFeatureInfo,featureSubsetStrategy,impurity,maxDepth,maxBin,numTree)
 

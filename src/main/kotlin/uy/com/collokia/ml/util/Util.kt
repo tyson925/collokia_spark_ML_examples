@@ -62,6 +62,7 @@ public fun evaulateAndPrintPrediction(numClasses: Int, testPrediction: RDD<Tuple
         println(printMulticlassMetrics(evaulation))
         evaulation.fMeasure(1.0)
     }
+    testPrediction.unpersist(false)
     return FMeasure
 
 }
