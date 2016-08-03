@@ -104,16 +104,22 @@ public class DocumentClassification() : Serializable {
 
             val hashedCorpusDF = cvModel.transform(parsedCorpus)
 
+            parsedCorpus.unpersist()
+
             val (hashedTrainDF, hashedTestDF) = hashedCorpusDF.randomSplit(doubleArrayOf(0.9, 0.1))
 
             val idfModel = setTfIdfModel(hashedTrainDF)
 
             val trainTfIdfDF = idfModel.transform(hashedTrainDF)
 
+            hashedTrainDF.unpersist()
+
             val normalizer = Normalizer().setInputCol(idfModel.outputCol).setOutputCol("normIdfFeatures").setP(1.0)
             //val normalizer = Normalizer().setInputCol("features").setOutputCol("normIdfFeatures").setP(1.0)
 
             val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)
+
+            trainTfIdfDF.unpersist()
 
             val trainData = convertDataFrameToLabeledPoints(normTrainTfIdfDF).cache()
 
@@ -121,12 +127,16 @@ public class DocumentClassification() : Serializable {
 
             val testTfIdfDF = idfModel.transform(hashedTestDF)
             val normTestTfIdfDF = normalizer.transform(testTfIdfDF)
+            testTfIdfDF.unpersist()
+
             val testData = convertDataFrameToLabeledPoints(normTestTfIdfDF).cache()
 
             val dt = DecisionTreeInSpark()
 
             val Fmeasure = dt.evaulateDecisionTreeModel(trainData, testData, 2)
 
+            trainData.unpersist()
+            testData.unpersist()
             Pair(category, Fmeasure)
 
         }.joinToString("\n")
@@ -135,7 +145,7 @@ public class DocumentClassification() : Serializable {
     }
 
     public fun tenFoldReutersDataEvaulation(jsc: JavaSparkContext) {
-        val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
+        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
@@ -150,13 +160,19 @@ public class DocumentClassification() : Serializable {
 
             val hashedCorpusDF = cvModel.transform(parsedCorpus)
 
+            parsedCorpus.unpersist()
+
             val idfModel = setTfIdfModel(hashedCorpusDF)
 
             val trainTfIdfDF = idfModel.transform(hashedCorpusDF)
 
+            hashedCorpusDF.unpersist()
+
             val normalizer = Normalizer().setInputCol(idfModel.outputCol).setOutputCol("normIdfFeatures").setP(1.0)
 
             val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)
+
+            trainTfIdfDF.unpersist()
 
             val data = convertDataFrameToLabeledPoints(normTrainTfIdfDF).cache()
 
@@ -166,11 +182,13 @@ public class DocumentClassification() : Serializable {
             val rf = RandomForestInSpark()
 
             val arffData = convertLabeledPointToArff(data)
-            saveArff(arffData,"./testData/reuters/arff/${category}.arff")
+            saveArff(arffData, "./testData/reuters/arff/${category}.arff")
 
             //val Fmeasure = dt.evaulate10Fold(testData)
             val Fmeasure = rf.evaulate10Fold(data)
             //val Fmeasure = 1.0
+
+            data.unpersist()
             Pair(category, Fmeasure)
 
         }.joinToString("\n")

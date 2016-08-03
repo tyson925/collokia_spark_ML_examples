@@ -51,6 +51,8 @@ public class RandomForestInSpark(){
 
         trainData.unpersist()
 
+
+
         println("evaulate decision tree model...")
         val evaulateTest = predicateRandomForest(forestModel, cvData)
         val FMeasure = if (numClasses == 2) {

@@ -17,7 +17,7 @@ import java.io.Serializable
 
 public class SVMSpark() : Serializable {
 
-    public fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int) : SVMModel {
+    public fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int): SVMModel {
 // Run training algorithm to build the model
         val numIterations = 300
         println("Build SVM with ${numClasses} classes...")
@@ -25,20 +25,18 @@ public class SVMSpark() : Serializable {
         return model
     }
 
-    public fun evaulateSVM(trainData: JavaRDD<LabeledPoint>,cvData : JavaRDD<LabeledPoint>, numClasses: Int) : Double{
+    public fun evaulateSVM(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
-        val model = buildSimpleSVM(trainData,numClasses)
+        val model = buildSimpleSVM(trainData, numClasses)
 
-// Clear the default threshold.
-        model.clearThreshold()
 
         trainData.unpersist()
 
         println("evaulate decision tree model...")
 
-        val evaulateTest = predicateSVM(model,cvData)
+        val evaulateTest = predicateSVM(model, cvData)
         val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
+            val evaulationBin = BinaryClassificationMetrics(evaulateTest, 100)
             val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             println(printBinaryClassificationMetrics(evaulationBin))
@@ -49,6 +47,8 @@ public class SVMSpark() : Serializable {
             evaulation.fMeasure(1.0)
         }
 
+// Clear the default threshold.
+        model.clearThreshold()
 
 
 // Compute raw scores on the test set.

@@ -13,18 +13,19 @@ import org.apache.spark.ml.tuning.ParamGridBuilder
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.tree.DecisionTree
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.tree.RandomForest
+import org.apache.spark.mllib.tree.DecisionTree
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
-import org.apache.spark.mllib.tree.model.RandomForestModel
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.ReutersRow
-import uy.com.collokia.ml.util.*
+import uy.com.collokia.ml.util.predicateDecisionTree
+import uy.com.collokia.ml.util.printBinaryClassificationMetrics
+import uy.com.collokia.ml.util.printMulticlassMetrics
+import uy.com.collokia.ml.util.randomClassifier
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
@@ -73,8 +74,8 @@ public class DecisionTreeInSpark() : Serializable {
 
         val evaulator = MulticlassClassificationEvaluator().setLabelCol(indexer.outputCol).setPredictionCol("prediction")
 
-                // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
-                evaulator.set("metricName","f1(1.0)")
+        // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
+        evaulator.set("metricName", "f1(1.0)")
 
         // We now treat the Pipeline as an Estimator, wrapping it in a CrossValidator instance.
 // This will allow us to jointly choose parameters for all Pipeline stages.
@@ -103,14 +104,15 @@ public class DecisionTreeInSpark() : Serializable {
 
     }
 
-    public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
-        val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
+    public fun evaulate10Fold(data: JavaRDD<LabeledPoint>): Double {
+        val tenFolds = MLUtils.kFold(data.rdd(), 10, 10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
-            val (trainData,testData) = fold
+            val (trainData, testData) = fold
             println("number of fold:\t${i}")
-            val Fmeasure = evaulateDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
-
+            val Fmeasure = evaulateDecisionTreeModel(trainData.toJavaRDD(), testData.toJavaRDD(), 2)
+            trainData.unpersist(false)
+            testData.unpersist(false)
             Fmeasure
         }
         return resultsInFmeasure.average()
@@ -126,10 +128,12 @@ public class DecisionTreeInSpark() : Serializable {
         //println("train a decision tree with classes ${numClasses} and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
         val model = buildDecisionTreeModel(trainData, numClasses, impurity, depth, bins)
 
+        //val dt = DecisionTree()
+
         println("evaulate decision tree model...")
         val evaulateTest = predicateDecisionTree(model, cvData)
         val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
+            val evaulationBin = BinaryClassificationMetrics(evaulateTest, 100)
             val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             println(printBinaryClassificationMetrics(evaulationBin))
@@ -139,6 +143,9 @@ public class DecisionTreeInSpark() : Serializable {
             println(printMulticlassMetrics(evaulation))
             evaulation.fMeasure(1.0)
         }
+
+        evaulateTest.unpersist(false)
+
         return FMeasure
     }
 
@@ -172,7 +179,7 @@ public class DecisionTreeInSpark() : Serializable {
 
         val model = DecisionTree.trainClassifier(
                 trainData.union(cvData), numClasses, mapOf<Int, Int>(), bestTreePoperties.first, bestTreePoperties.second, bestTreePoperties.third)
-        val testEval = MulticlassMetrics(predicateDecisionTree(model,testData))
+        val testEval = MulticlassMetrics(predicateDecisionTree(model, testData))
         println("test eval:\t${testEval.accuracy()}")
         println("train + cvData:\t${MulticlassMetrics(predicateDecisionTree(model, trainData.union(cvData))).accuracy()}")
         return testEval.fMeasure(1.0)
