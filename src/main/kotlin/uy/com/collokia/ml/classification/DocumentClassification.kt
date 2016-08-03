@@ -37,9 +37,6 @@ public data class ReutersRow(var category: String, var content: String) : Serial
 
 public class DocumentClassification() : Serializable {
 
-    var hashingTF: HashingTF? = null
-    var idfModel: IDFModel? = null
-
     companion object {
         val MAPPER = jacksonObjectMapper()
         val topCategories = listOf("ship", "grain", "money-fx", "corn", "trade", "crude", "earn", "wheat", "acq", "interest")
@@ -120,7 +117,7 @@ public class DocumentClassification() : Serializable {
                 //.setInputCol("ngrams")
                 .setInputCol("filteredWords")
                 .setOutputCol("features")
-                .setVocabSize(3)
+                .setVocabSize(2000)
                 .setMinDF(2.0)
                 .fit(ngramsDataFrame)
 
@@ -179,7 +176,7 @@ public class DocumentClassification() : Serializable {
             val svm = SVMSpark()
             //svm.simpleSVM(trainData,cvData,2)
             val Fmeasure = dt.buildDecisionTreeModel(trainData, testData, 2)
-            //dt.evaluateSimpleForest(trainData, cvData, 10)
+            //dt.evaulateSimpleForest(trainData, cvData, 10)
             //val Fmeasure = dt.evaluate(trainData, testData, testData, 2)
             //dt.evaluateForest(trainData, cvData, 10)
 //CrossValidator().se
@@ -201,11 +198,21 @@ public class DocumentClassification() : Serializable {
 
 
         val results = topCategories.map { category ->
+
             val parsedCorpus = exractFeaturesFromCorpus(parseCorpus(sparkSession, corpusInRaw, category))
 
-            val hashingTF = hasingTf().setNumFeatures(2000)
-            val hashedCorpusDF = hashingTF.transform(parsedCorpus)
+            println("category:\t${category}")
+            //val hashingTF = hasingTf().setNumFeatures(2000)
+            //val hashedCorpusDF = hashingTF.transform(parsedCorpus)
 
+            val cvModel = CountVectorizer()
+                    .setInputCol("filteredWords")
+                    .setOutputCol("tfFeatures")
+                    .setVocabSize(2000)
+                    .setMinDF(3.0)
+                    .fit(parsedCorpus)
+
+            val hashedCorpusDF = cvModel.transform(parsedCorpus)
 
             val idfModel = setTfIdfModel(hashedCorpusDF)
 
@@ -222,12 +229,12 @@ public class DocumentClassification() : Serializable {
 
             val dt = DecisionTreeInSpark()
 
-            val arffData =convertLabeledPointToArff(data)
-            saveArff(arffData,"./data/reuters/arff/${category}.arff")
+            //val arffData =convertLabeledPointToArff(data)
+            //saveArff(arffData,"./data/reuters/arff/${category}.arff")
 
-            //val Fmeasure = dt.evaulate10Fold(data)
-            val Fmeasure = 1.0
-            //dt.evaluateSimpleForest(trainData, cvData, 10)
+            val Fmeasure = dt.evaulate10Fold(data)
+            //val Fmeasure = 1.0
+            //dt.evaulateSimpleForest(trainData, cvData, 10)
             //val Fmeasure = dt.evaluate(trainData, testData, testData, 2)
             //dt.evaluateForest(trainData, cvData, 10)
 //CrossValidator().se
@@ -335,7 +342,7 @@ public class DocumentClassification() : Serializable {
             //createTfIdfCorpus(jsc)
             tenFoldEvaulation(jsc)
             //val dt = DecisionTreeInSpark()
-            //dt.evaluateSimpleForest(data)
+            //dt.evaulateSimpleForest(data)
             //dt.evaluate(trainData, cvData, testData, 10)
             //println(dt.classProbabilities(trainData).joinToString("\n"))
             //dt.buildDecisionTreeModel(trainData,testData,10)

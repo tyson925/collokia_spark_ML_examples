@@ -8,32 +8,32 @@ import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
+import org.apache.spark.mllib.tree.model.RandomForestModel
+import org.apache.spark.rdd.RDD
 import scala.Tuple2
 import weka.core.Attribute
 import weka.core.Instances
 import weka.core.SparseInstance
-import weka.core.converters.ArffLoader
 import weka.core.converters.ArffSaver
 import weka.core.converters.ConverterUtils
-import java.util.*
 import java.io.File
+import java.util.*
 
-public fun getMulticlassMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>): MulticlassMetrics {
 
+public fun predicateDecisionTree(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = data.map { instance ->
-//model.
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
-    return MulticlassMetrics(predictionsAndLabels.rdd())
+    return predictionsAndLabels.rdd()
 }
 
-public fun getBinaryClassificationMetrics(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>): BinaryClassificationMetrics {
+public fun predicateRandomForest(model : RandomForestModel, data: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = data.map { instance ->
-
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
-    return BinaryClassificationMetrics(predictionsAndLabels.rdd(),100)
+    return predictionsAndLabels.rdd()
 }
+
 
 public fun printMulticlassMetrics(evaulation: MulticlassMetrics): String {
     val res = StringBuffer()
