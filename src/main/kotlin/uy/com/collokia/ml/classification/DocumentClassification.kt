@@ -92,7 +92,7 @@ public class DocumentClassification() : Serializable {
     }
 
     public fun reutersDataEvaulation(jsc: JavaSparkContext) {
-        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+        val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
@@ -125,7 +125,7 @@ public class DocumentClassification() : Serializable {
 
             val dt = DecisionTreeInSpark()
 
-            val Fmeasure = dt.buildDecisionTreeModel(trainData, testData, 2)
+            val Fmeasure = dt.evaulateDecisionTreeModel(trainData, testData, 2)
 
             Pair(category, Fmeasure)
 
@@ -135,7 +135,7 @@ public class DocumentClassification() : Serializable {
     }
 
     public fun tenFoldReutersDataEvaulation(jsc: JavaSparkContext) {
-        val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+        val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
@@ -145,7 +145,7 @@ public class DocumentClassification() : Serializable {
 
             println("category:\t${category}")
 
-            val cvModel = CountVectorizer().setInputCol(featureOutput).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(3.0)
+            val cvModel = CountVectorizer().setInputCol(featureOutput).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(2.0)
                     .fit(parsedCorpus)
 
             val hashedCorpusDF = cvModel.transform(parsedCorpus)
@@ -165,10 +165,10 @@ public class DocumentClassification() : Serializable {
             //val dt = DecisionTreeInSpark()
             val rf = RandomForestInSpark()
 
-            val arffData =convertLabeledPointToArff(data)
-            saveArff(arffData,"./data/reuters/arff/${category}.arff")
+            val arffData = convertLabeledPointToArff(data)
+            saveArff(arffData,"./testData/reuters/arff/${category}.arff")
 
-            //val Fmeasure = dt.evaulate10Fold(data)
+            //val Fmeasure = dt.evaulate10Fold(testData)
             val Fmeasure = rf.evaulate10Fold(data)
             //val Fmeasure = 1.0
             Pair(category, Fmeasure)
@@ -195,7 +195,7 @@ public class DocumentClassification() : Serializable {
             org.apache.spark.mllib.regression.LabeledPoint(label, org.apache.spark.mllib.linalg.SparseVector(features.size(), features.indices(), features.values()))
         })
 
-        println("number of data: " + labeledDataPoints.count())
+        println("number of testData: " + labeledDataPoints.count())
 
         val labelStat = featureData.select("originalCategory").javaRDD().mapToPair { label ->
             Tuple2(label.getString(0), 1L)
@@ -217,8 +217,8 @@ public class DocumentClassification() : Serializable {
 
     public fun readJson() {
         var index = 0
-        File("./data/reuters/json/reuters.json").bufferedWriter().use { writer ->
-            val time = File("./data/reuters/").listFiles().filter { file -> file.name.endsWith(".json") }.forEach { file ->
+        File("./testData/reuters/json/reuters.json").bufferedWriter().use { writer ->
+            val time = File("./testData/reuters/").listFiles().filter { file -> file.name.endsWith(".json") }.forEach { file ->
                 val jsons = file.readLines().joinToString("\n").split("},").toMutableList()
                 jsons[0] = jsons[0].substring(1)
                 jsons[jsons.lastIndex] = jsons[jsons.lastIndex].substringBeforeLast("]")
@@ -250,12 +250,12 @@ public class DocumentClassification() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            //val data = parseCorpus(jsc)
+            //val testData = parseCorpus(jsc)
 
             //reutersDataEvaulation(jsc)
             tenFoldReutersDataEvaulation(jsc)
             //val dt = DecisionTreeInSpark()
-            //dt.evaulateSimpleForest(data)
+            //dt.evaulateSimpleForest(testData)
             //dt.evaluate(trainData, cvData, testData, 10)
             //println(dt.classProbabilities(trainData).joinToString("\n"))
             //dt.buildDecisionTreeModel(trainData,testData,10)

@@ -2,6 +2,7 @@ package uy.com.collokia.ml.util
 
 //import org.apache.spark.ml.tree.DecisionTreeModel
 import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.DenseVector
@@ -19,16 +20,23 @@ import weka.core.converters.ConverterUtils
 import java.io.File
 import java.util.*
 
-
-public fun predicateDecisionTree(model: DecisionTreeModel, data: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
-    val predictionsAndLabels = data.map { instance ->
+public fun predicateSVM(model : SVMModel,testData : JavaRDD<LabeledPoint>) :  RDD<Tuple2<Any, Any>> {
+    val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return predictionsAndLabels.rdd()
 }
 
-public fun predicateRandomForest(model : RandomForestModel, data: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
-    val predictionsAndLabels = data.map { instance ->
+
+public fun predicateDecisionTree(model: DecisionTreeModel, testData: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
+    val predictionsAndLabels = testData.map { instance ->
+        Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
+    }
+    return predictionsAndLabels.rdd()
+}
+
+public fun predicateRandomForest(model : RandomForestModel, testData: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
+    val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return predictionsAndLabels.rdd()
@@ -87,7 +95,7 @@ public fun randomClassifier(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<La
 }
 
 public fun classProbabilities(data: JavaRDD<LabeledPoint>): DoubleArray {
-    // Count (category,count) in data
+    // Count (category,count) in testData
     val countsByCategory = data.map({ instance -> instance.label() }).countByValue()
     // order counts by category and extract counts
     val counts = countsByCategory.toSortedMap().map { it -> it.value }
@@ -141,6 +149,6 @@ public fun saveArff(dataSet : Instances,outFileName : String){
 public fun loadArff(arffFileName : String) : Instances {
     val source = ConverterUtils.DataSource(arffFileName)
     val data = source.getDataSet()
-    println("load data from ${arffFileName}")
+    println("load testData from ${arffFileName}")
     return data
 }

@@ -121,7 +121,7 @@ public class LastFmALS() {
         // What this actually computes is AUC, per user. The result is actually something
         // that might be called "mean AUC".
 
-        // Take held-out data as the "positive", and map to tuples
+        // Take held-out testData as the "positive", and map to tuples
         val positiveUserProducts = positiveData.mapToPair({ rating -> Tuple2(rating.user(), rating.product()) })
         // Make predictions for each of them, including a numeric score, and gather by user
 
@@ -272,7 +272,7 @@ public class LastFmALS() {
             val sparkConf = SparkConf().setAppName("LastFMRecommendation").setMaster("local[6]")
             //sparkConf.set("spark.driver.maxResultSize", "2g")
             val jsc = JavaSparkContext(sparkConf)
-            val rootDirectory = "./../ES/data/profiledata_06-May-2005/"
+            val rootDirectory = "./../ES/testData/profiledata_06-May-2005/"
             val rawUserArtistData = jsc.textFile(rootDirectory + "user_artist_data.txt")
             val rawArtistData = jsc.textFile(rootDirectory + "artist_data.txt")
             val rawArtistAlias = jsc.textFile(rootDirectory + "artist_alias.txt")

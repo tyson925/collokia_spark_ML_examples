@@ -31,19 +31,18 @@ public class RandomForestInSpark(){
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
             println("number of fold:\t${i}")
-            //val Fmeasure = buildDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
-            val Fmeasure = buildSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            val Fmeasure = evaulateSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
         return resultsInFmeasure.average()
     }
 
-    public fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    public fun evaulateSimpleForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
         val categoricalFeatureInfo = mapOf<Int, Int>()
         val featureSubsetStrategy = "auto"
-        val impurity = "entropy"
+        val impurity = "gini"
         val maxDepth = 10
-        val maxBin = 32
+        val maxBin = 300
         val numTree = 50
 
         //10 to 4, 11 to 40
@@ -53,14 +52,15 @@ public class RandomForestInSpark(){
         trainData.unpersist()
 
         println("evaulate decision tree model...")
+        val evaulateTest = predicateRandomForest(forestModel, cvData)
         val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(predicateRandomForest(forestModel, cvData),100)
-            val evaulation = MulticlassMetrics(predicateRandomForest(forestModel, cvData))
+            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
+            val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             println(printBinaryClassificationMetrics(evaulationBin))
             evaulation.fMeasure(1.0)
         } else {
-            val evaulation = MulticlassMetrics(predicateRandomForest(forestModel, cvData))
+            val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             evaulation.fMeasure(1.0)
         }
@@ -122,7 +122,7 @@ public class RandomForestInSpark(){
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+            val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
@@ -130,8 +130,8 @@ public class RandomForestInSpark(){
             //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
             //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
             val docClass = DocumentClassification()
-            val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
-            evaulate10Fold(parsedCorpus)
+            //val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
+            //evaulate10Fold(parsedCorpus)
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")

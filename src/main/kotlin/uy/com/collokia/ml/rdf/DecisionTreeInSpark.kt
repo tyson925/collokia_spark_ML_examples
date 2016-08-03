@@ -109,7 +109,7 @@ public class DecisionTreeInSpark() : Serializable {
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
             println("number of fold:\t${i}")
-            val Fmeasure = buildDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            val Fmeasure = evaulateDecisionTreeModel(trainData.toJavaRDD(),testData.toJavaRDD(),2)
 
             Fmeasure
         }
@@ -117,7 +117,7 @@ public class DecisionTreeInSpark() : Serializable {
     }
 
 
-    public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    public fun evaulateDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
         val impurity = "gini"
         val depth = 10
@@ -127,14 +127,15 @@ public class DecisionTreeInSpark() : Serializable {
         val model = buildDecisionTreeModel(trainData, numClasses, impurity, depth, bins)
 
         println("evaulate decision tree model...")
+        val evaulateTest = predicateDecisionTree(model, cvData)
         val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(predicateDecisionTree(model, cvData),100)
-            val evaulation = MulticlassMetrics(predicateDecisionTree(model, cvData))
+            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
+            val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             println(printBinaryClassificationMetrics(evaulationBin))
             evaulation.fMeasure(1.0)
         } else {
-            val evaulation = MulticlassMetrics(predicateDecisionTree(model, cvData))
+            val evaulation = MulticlassMetrics(evaulateTest)
             println(printMulticlassMetrics(evaulation))
             evaulation.fMeasure(1.0)
         }
@@ -240,7 +241,7 @@ public class DecisionTreeInSpark() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+            val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
@@ -262,7 +263,7 @@ public class DecisionTreeInSpark() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val rawData = jsc.textFile("./data/DT/covtype.data.gz")
+            val rawData = jsc.textFile("./testData/DT/covtype.testData.gz")
 
             val data = rawData.map { line ->
                 val values = line.split(',').map({ value -> value.toDouble() })

@@ -23,7 +23,7 @@ public class KMeansInSpark() : Serializable {
 
         val jsc = JavaSparkContext(sparkConf)
 
-        val rawData = jsc.textFile("./data/KMeans/kddcup.data_10_percent.gz").cache()
+        val rawData = jsc.textFile("./testData/KMeans/kddcup.data_10_percent.gz").cache()
         //clusteringTake0(rawData)
         //clusteringTake1(rawData)
         //clusteringTake2(rawData)

@@ -30,7 +30,7 @@ public class WekaClassification() {
     }
 
     public fun evaulateReuters() {
-        val results = File("./data/reuters/arff/").listFiles().filter { file -> file.name.endsWith(".arff") }.map { file ->
+        val results = File("./testData/reuters/arff/").listFiles().filter { file -> file.name.endsWith(".arff") }.map { file ->
             val category = file.name.substringBefore(".arff")
             val data = loadArff(file.canonicalPath)
             Pair(category,evaulateTenFold(data))
@@ -43,8 +43,8 @@ public class WekaClassification() {
 
 fun main(args: Array<String>) {
 
-    //val data = loadArff("./data/reuters/arff/acq.arff")
+    //val testData = loadArff("./testData/reuters/arff/acq.arff")
     val weka = WekaClassification()
-    //weka.evaulateTenFold(data)
+    //weka.evaulateTenFold(testData)
     weka.evaulateReuters()
 }

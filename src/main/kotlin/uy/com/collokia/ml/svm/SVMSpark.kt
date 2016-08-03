@@ -2,31 +2,54 @@ package uy.com.collokia.ml.svm
 
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS
+import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.mllib.classification.SVMWithSGD
 
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.regression.LabeledPoint
 import scala.Tuple2
+import uy.com.collokia.ml.util.predicateRandomForest
+import uy.com.collokia.ml.util.predicateSVM
+import uy.com.collokia.ml.util.printBinaryClassificationMetrics
+import uy.com.collokia.ml.util.printMulticlassMetrics
 import java.io.Serializable
 
 public class SVMSpark() : Serializable {
 
-    public fun simpleSVM(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
+    public fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int) : SVMModel {
 // Run training algorithm to build the model
         val numIterations = 300
-        //val model = SVMWithSGD.train(trainData.rdd(), numIterations)
-val model = LogisticRegressionWithLBFGS().setNumClasses(2).run(trainData.rdd())
+        println("Build SVM with ${numClasses} classes...")
+        val model = SVMWithSGD.train(trainData.rdd(), numIterations)
+        return model
+    }
 
-        val predictionsAndLabels = cvData.map({ example ->
-            Tuple2(model.predict(example.features()) as Any, example.label() as Any)
-        })
+    public fun evaulateSVM(trainData: JavaRDD<LabeledPoint>,cvData : JavaRDD<LabeledPoint>, numClasses: Int) : Double{
 
-        println(predictionsAndLabels.collect().joinToString("\n"))
-        val multimetrics = MulticlassMetrics(predictionsAndLabels.rdd())
-        println("F-measure:\t${multimetrics.weightedFMeasure()}, precision:\t${multimetrics.weightedPrecision()}, recall:\t${multimetrics.weightedRecall()}")
+        val model = buildSimpleSVM(trainData,numClasses)
+
 // Clear the default threshold.
         model.clearThreshold()
+
+        trainData.unpersist()
+
+        println("evaulate decision tree model...")
+
+        val evaulateTest = predicateSVM(model,cvData)
+        val FMeasure = if (numClasses == 2) {
+            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
+            val evaulation = MulticlassMetrics(evaulateTest)
+            println(printMulticlassMetrics(evaulation))
+            println(printBinaryClassificationMetrics(evaulationBin))
+            evaulation.fMeasure(1.0)
+        } else {
+            val evaulation = MulticlassMetrics(evaulateTest)
+            println(printMulticlassMetrics(evaulation))
+            evaulation.fMeasure(1.0)
+        }
+
+
 
 // Compute raw scores on the test set.
         val scoreAndLabels = cvData.map { point ->
@@ -39,7 +62,7 @@ val model = LogisticRegressionWithLBFGS().setNumClasses(2).run(trainData.rdd())
 
         val auROC = metrics.areaUnderROC()
         println("areaUnderROC:\t${auROC}")
-
+        return FMeasure
     }
 
 }

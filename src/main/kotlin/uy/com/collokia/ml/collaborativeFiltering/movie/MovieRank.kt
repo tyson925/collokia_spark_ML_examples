@@ -19,7 +19,7 @@ data class Movie(val movieId: Int, val title: String, var genres: List<String>?,
 public class MovieRank() : Serializable {
     public fun simpleExampleRun(data : JavaRDD<String>) {
 
-        // Load and parse the data
+        // Load and parse the testData
         val ratings = data.map({ line ->
             val (user, product, rating) = line.split(',')
             Rating(user.toInt(), product.toInt(), rating.toDouble())
@@ -32,7 +32,7 @@ public class MovieRank() : Serializable {
         val model = ALS.train(JavaRDD.toRDD(ratings), rank, numIterations, 0.01);
 
 
-        // Evaluate the model on rating data
+        // Evaluate the model on rating testData
         val userProducts = ratings.mapToPair({ rating ->
             Tuple2(rating.user(), rating.product())
         })
@@ -121,7 +121,7 @@ public class MovieRank() : Serializable {
             println("NDCG at $k = ${metrics.ndcgAt(k)}")
         }
 
-        // Get predictions for each data point
+        // Get predictions for each testData point
         val allPredictions = model.predict(movieRatingData.mapToPair({ rating -> Tuple2(rating.user(), rating.product()) })).mapToPair({ rating ->
             Tuple2(Tuple2(rating.user(),
                     rating.product()), rating.rating())
@@ -237,11 +237,11 @@ public class MovieRank() : Serializable {
             val sparkConf = SparkConf().setAppName("Collaborative Filtering Example").setMaster("local[6]")
             val jsc = JavaSparkContext(sparkConf)
 
-            val path = "./data/collaborativeFiltering/test.txt";
+            val path = "./testData/collaborativeFiltering/test.txt";
             val testData = jsc.textFile(path);
-            val movieRatingPath = "./data/collaborativeFiltering/sample_movielens_ratings.txt";
+            val movieRatingPath = "./testData/collaborativeFiltering/sample_movielens_ratings.txt";
             val movieRatingDataInLine = jsc.textFile(movieRatingPath);
-            val moviePath = "./data/collaborativeFiltering/sample_movielens_movies.txt";
+            val moviePath = "./testData/collaborativeFiltering/sample_movielens_movies.txt";
             val movieDataInLine = jsc.textFile(moviePath);
 
             //movieLensALS()
