@@ -274,7 +274,7 @@ public class DocumentClassification() : Serializable {
             tenFoldReutersDataEvaulation(jsc)
             //val dt = DecisionTreeInSpark()
             //dt.evaulateSimpleForest(testData)
-            //dt.evaluate(trainData, cvData, testData, 10)
+            //dt.evaluate(trainData, testData, testData, 10)
             //println(dt.classProbabilities(trainData).joinToString("\n"))
             //dt.buildDecisionTreeModel(trainData,testData,10)
         }

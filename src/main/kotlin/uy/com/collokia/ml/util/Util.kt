@@ -8,6 +8,7 @@ import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.regression.LinearRegressionModel
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.tree.model.RandomForestModel
 import org.apache.spark.rdd.RDD
@@ -20,7 +21,14 @@ import weka.core.converters.ConverterUtils
 import java.io.File
 import java.util.*
 
-public fun predicateSVM(model : SVMModel,testData : JavaRDD<LabeledPoint>) :  RDD<Tuple2<Any, Any>> {
+public fun predicateLogReg(model: LinearRegressionModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
+    val predictionsAndLabels = testData.map { instance ->
+        Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
+    }
+    return predictionsAndLabels.rdd()
+}
+
+public fun predicateSVM(model: SVMModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
@@ -28,47 +36,62 @@ public fun predicateSVM(model : SVMModel,testData : JavaRDD<LabeledPoint>) :  RD
 }
 
 
-public fun predicateDecisionTree(model: DecisionTreeModel, testData: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
+public fun predicateDecisionTree(model: DecisionTreeModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return predictionsAndLabels.rdd()
 }
 
-public fun predicateRandomForest(model : RandomForestModel, testData: JavaRDD<LabeledPoint>) : RDD<Tuple2<Any, Any>> {
+public fun predicateRandomForest(model: RandomForestModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
     return predictionsAndLabels.rdd()
 }
 
+public fun evaulateAndPrintPrediction(numClasses: Int, testPrediction: RDD<Tuple2<Any, Any>>): Double {
+    val FMeasure = if (numClasses == 2) {
+        val evaulationBin = BinaryClassificationMetrics(testPrediction, 100)
+        val evaulation = MulticlassMetrics(testPrediction)
+        println(printMulticlassMetrics(evaulation))
+        println(printBinaryClassificationMetrics(evaulationBin))
+        evaulation.fMeasure(1.0)
+    } else {
+        val evaulation = MulticlassMetrics(testPrediction)
+        println(printMulticlassMetrics(evaulation))
+        evaulation.fMeasure(1.0)
+    }
+    return FMeasure
+
+}
 
 public fun printMulticlassMetrics(evaulation: MulticlassMetrics): String {
     val res = StringBuffer()
     res.append("W. F-measure:\t${evaulation.weightedFMeasure()},\tW. precision:${evaulation.weightedPrecision()},\tW. recall:\t${evaulation.weightedRecall()}\n")
     res.append("label stats:\n")
-    println("labels:\t"+evaulation.labels().joinToString("\t"))
+    println("labels:\t" + evaulation.labels().joinToString("\t"))
     res.append((0..evaulation.labels().size - 1).map({ category ->
         "label:\t${category}:\tF-measure:\t${evaulation.fMeasure(category.toDouble())},\tprecision:\t${evaulation.precision(category.toDouble())},\trecall:\t${evaulation.recall(category.toDouble())}"
 
-    }).joinToString("\n")+"\n")
+    }).joinToString("\n") + "\n")
     println("confusionMatrix:\n")
     //res.append("${evaulation.confusionMatrix()}\n")
-    res.append(printMatrix(evaulation.confusionMatrix(),evaulation.labels()))
+    res.append(printMatrix(evaulation.confusionMatrix(), evaulation.labels()))
     return res.toString()
 }
 
-private fun printMatrix(matrix : Matrix,labels : DoubleArray) : String{
+private fun printMatrix(matrix: Matrix, labels: DoubleArray): String {
     val res = StringBuffer()
     res.append("\t\t")
     labels.forEach { label ->
         res.append("${label},\t")
     }
     res.append("\n")
-    (0..labels.size-1).forEach { i ->
+    (0..labels.size - 1).forEach { i ->
         res.append("${labels[i]},\t")
-        (0..matrix.numCols()-1).forEach { col ->
-            res.append("${matrix.apply(i,col)},\t")
+        (0..matrix.numCols() - 1).forEach { col ->
+            res.append("${matrix.apply(i, col)},\t")
         }
         res.append("\n")
     }
@@ -76,7 +99,7 @@ private fun printMatrix(matrix : Matrix,labels : DoubleArray) : String{
     return res.toString()
 }
 
-public fun printBinaryClassificationMetrics(evaulation: BinaryClassificationMetrics) : String {
+public fun printBinaryClassificationMetrics(evaulation: BinaryClassificationMetrics): String {
     val res = StringBuffer("areaUnderROC:\t${evaulation.areaUnderROC()}\n")
     //val roc = evaulation.roc().collect() as Tuple2<*,*>
     //res.append("${roc._1}\t${roc._2}\n")
@@ -103,14 +126,14 @@ public fun classProbabilities(data: JavaRDD<LabeledPoint>): DoubleArray {
     return counts.map({ it -> it.toDouble() / counts.sum() }).toDoubleArray()
 }
 
-public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>) : Instances {
+public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>): Instances {
 
     val numAtts = data.first().features().size()
     val atts = ArrayList<Attribute>(numAtts)
     val classValues = ArrayList<String>(2)
     classValues.add("negative")
     classValues.add("positive")
-    val classAttribute = Attribute("class", classValues,numAtts)
+    val classAttribute = Attribute("class", classValues, numAtts)
     atts.add(classAttribute)
     (1..numAtts).forEach { att ->
         atts.add(Attribute("Attribute" + att, att))
@@ -121,15 +144,15 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>) : Instances {
     val dataset = Instances("Dataset", atts, numInstances.toInt())
     //dataset.insertAttributeAt(classAttribute,dataset.numAttributes())
     data.collect().forEach { labeledPoint ->
-        val wekaInstance = SparseInstance(1.0,labeledPoint.features().toArray())
+        val wekaInstance = SparseInstance(1.0, labeledPoint.features().toArray())
 
-        if (labeledPoint.label() == 1.0){
+        if (labeledPoint.label() == 1.0) {
             println(wekaInstance)
-            wekaInstance.setValue(classAttribute,labeledPoint.label())
+            wekaInstance.setValue(classAttribute, labeledPoint.label())
             println(wekaInstance)
         }
 
-        wekaInstance.setValue(classAttribute,labeledPoint.label())
+        wekaInstance.setValue(classAttribute, labeledPoint.label())
         dataset.add(wekaInstance)
     }
 
@@ -137,7 +160,7 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>) : Instances {
 
 }
 
-public fun saveArff(dataSet : Instances,outFileName : String){
+public fun saveArff(dataSet: Instances, outFileName: String) {
     val saver = ArffSaver()
     saver.setInstances(dataSet)
     saver.setFile(File(outFileName))
@@ -146,7 +169,7 @@ public fun saveArff(dataSet : Instances,outFileName : String){
 }
 
 
-public fun loadArff(arffFileName : String) : Instances {
+public fun loadArff(arffFileName: String): Instances {
     val source = ConverterUtils.DataSource(arffFileName)
     val data = source.getDataSet()
     println("load testData from ${arffFileName}")

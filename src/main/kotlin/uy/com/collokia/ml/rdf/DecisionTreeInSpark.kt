@@ -22,10 +22,7 @@ import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.ReutersRow
-import uy.com.collokia.ml.util.predicateDecisionTree
-import uy.com.collokia.ml.util.printBinaryClassificationMetrics
-import uy.com.collokia.ml.util.printMulticlassMetrics
-import uy.com.collokia.ml.util.randomClassifier
+import uy.com.collokia.ml.util.*
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
@@ -131,22 +128,9 @@ public class DecisionTreeInSpark() : Serializable {
         //val dt = DecisionTree()
 
         println("evaulate decision tree model...")
-        val evaulateTest = predicateDecisionTree(model, cvData)
-        val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(evaulateTest, 100)
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            println(printBinaryClassificationMetrics(evaulationBin))
-            evaulation.fMeasure(1.0)
-        } else {
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            evaulation.fMeasure(1.0)
-        }
+        val testPrediction = predicateDecisionTree(model, cvData)
 
-        evaulateTest.unpersist(false)
-
-        return FMeasure
+        return evaulateAndPrintPrediction(numClasses,testPrediction)
     }
 
     public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
@@ -181,7 +165,7 @@ public class DecisionTreeInSpark() : Serializable {
                 trainData.union(cvData), numClasses, mapOf<Int, Int>(), bestTreePoperties.first, bestTreePoperties.second, bestTreePoperties.third)
         val testEval = MulticlassMetrics(predicateDecisionTree(model, testData))
         println("test eval:\t${testEval.accuracy()}")
-        println("train + cvData:\t${MulticlassMetrics(predicateDecisionTree(model, trainData.union(cvData))).accuracy()}")
+        println("train + testData:\t${MulticlassMetrics(predicateDecisionTree(model, trainData.union(cvData))).accuracy()}")
         return testEval.fMeasure(1.0)
     }
 
@@ -284,9 +268,9 @@ public class DecisionTreeInSpark() : Serializable {
             cvData.cache()
             testData.cache()
 
-            //buildDecisionTreeModel(trainData, cvData)
+            //buildDecisionTreeModel(trainData, testData)
             randomClassifier(trainData, cvData)
-            //evaluate(trainData, cvData, testData)
+            //evaluate(trainData, testData, testData)
             evaluateCategorical(rawData)
 
 

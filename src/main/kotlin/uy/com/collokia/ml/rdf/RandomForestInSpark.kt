@@ -3,7 +3,6 @@ package uy.com.collokia.ml.rdf
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.RandomForest
@@ -12,9 +11,8 @@ import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
+import uy.com.collokia.ml.util.evaulateAndPrintPrediction
 import uy.com.collokia.ml.util.predicateRandomForest
-import uy.com.collokia.ml.util.printBinaryClassificationMetrics
-import uy.com.collokia.ml.util.printMulticlassMetrics
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
@@ -51,23 +49,10 @@ public class RandomForestInSpark(){
 
         trainData.unpersist()
 
+        println("evaulate random forest model...")
+        val testPrediction = predicateRandomForest(forestModel, cvData)
 
-
-        println("evaulate decision tree model...")
-        val evaulateTest = predicateRandomForest(forestModel, cvData)
-        val FMeasure = if (numClasses == 2) {
-            val evaulationBin = BinaryClassificationMetrics(evaulateTest,100)
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            println(printBinaryClassificationMetrics(evaulationBin))
-            evaulation.fMeasure(1.0)
-        } else {
-            val evaulation = MulticlassMetrics(evaulateTest)
-            println(printMulticlassMetrics(evaulation))
-            evaulation.fMeasure(1.0)
-        }
-
-        return FMeasure
+        return evaulateAndPrintPrediction(numClasses,testPrediction)
     }
 
     public fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, numClasses: Int, categoricalFeatureInfo : Map<Int, Int>,
