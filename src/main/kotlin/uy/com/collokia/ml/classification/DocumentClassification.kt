@@ -311,7 +311,8 @@ public class DocumentClassification() : Serializable {
             //val testData = parseCorpus(jsc)
 
             //reutersDataEvaulation(jsc)
-            tenFoldReutersDataEvaulation(jsc)
+            //tenFoldReutersDataEvaulation(jsc)
+            tenFoldReutersDataEvaulationWithClassifiers(jsc)
             //val dt = DecisionTreeInSpark()
             //dt.evaulateSimpleForest(testData)
             //dt.evaluate(trainData, testData, testData, 10)

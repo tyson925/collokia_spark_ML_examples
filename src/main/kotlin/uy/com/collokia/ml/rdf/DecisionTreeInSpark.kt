@@ -136,6 +136,8 @@ public class DecisionTreeInSpark() : Serializable {
     public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
         // Build a simple default DecisionTreeModel
         println("train a decision tree with classes ${numClasses} and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
+
+        //DecisionTreeClassifier().
         val model = DecisionTree.trainClassifier(trainData, numClasses, mapOf<Int, Int>(), impurity, depth, bins)
         return model
     }
