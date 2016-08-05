@@ -7,22 +7,21 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.feature.*
 import org.apache.spark.ml.tuning.CrossValidator
 import org.apache.spark.ml.tuning.ParamGridBuilder
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.DecisionTree
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.util.MLUtils
-import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.classification.ReutersRow
-import uy.com.collokia.ml.util.*
+import uy.com.collokia.ml.util.evaulateAndPrintPrediction
+import uy.com.collokia.ml.util.predicateDecisionTree
+import uy.com.collokia.ml.util.printMulticlassMetrics
+import uy.com.collokia.ml.util.randomClassifier
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
@@ -34,32 +33,25 @@ import java.io.Serializable
 public class DecisionTreeInSpark() : Serializable {
 
 
-    public fun evaulate10FoldDF(dataInRaw: Dataset<ReutersRow>) {
 
-        val indexer = StringIndexer().setInputCol("category").setOutputCol("categoryIndex").fit(dataInRaw)
-        println("labels:\t ${indexer.labels().joinToString("\t")}")
+    public fun evaulate10FoldDF(sparkSession : SparkSession,dataInRaw: JavaRDD<String>,category : String) {
 
-        val tokenizer = Tokenizer().setInputCol("content").setOutputCol("words")
+        val documentClassification = DocumentClassification()
 
-        val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
+        val vtmPipeline = documentClassification.constructVTMPipeline()
 
-        val ngramTransformer = NGram().setInputCol(remover.outputCol).setOutputCol("ngrams").setN(4)
-
-        val hashingTf = HashingTF().setInputCol(ngramTransformer.outputCol).setOutputCol("hashedFeatures").setNumFeatures(2000)
-
-        val idfModel = IDF().setInputCol(hashingTf.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
-
-        val normalizer = Normalizer().setInputCol(idfModel.outputCol).setOutputCol("normIdfFeatures").setP(1.0)
-
+        val data =documentClassification.parseCorpus(sparkSession,dataInRaw,category)
         val impurity = "gini"
         val depth = 10
         val bins = 300
         //println("train a decision tree with classes and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
         //val decisionTree = DecisionTreeClassifier().setFeaturesCol(normalizer.outputCol).setLabelCol(indexer.outputCol).setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
 
-        val decisionTree = DecisionTreeClassifier().setFeaturesCol(normalizer.outputCol).setLabelCol(indexer.outputCol).setImpurity(impurity)
+        val vtm = vtmPipeline.fit(data).transform(data)
 
-        val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngramTransformer, hashingTf, idfModel, normalizer, decisionTree))
+        val decisionTree = DecisionTreeClassifier().setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol).setImpurity(impurity)
+
+        val pipeline = Pipeline().setStages(arrayOf(decisionTree))
 
         // ParamGridBuilder was applied to construct a grid of parameters to search over.
         val paramGrid = ParamGridBuilder()
@@ -69,24 +61,21 @@ public class DecisionTreeInSpark() : Serializable {
                 .build()
 
 
-        val evaulator = MulticlassClassificationEvaluator().setLabelCol(indexer.outputCol).setPredictionCol("prediction")
+        val evaulator = MulticlassClassificationEvaluator().setLabelCol(DocumentClassification.labelIndexCol).setPredictionCol("prediction")
 
         // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
-        evaulator.set("metricName", "f1(1.0)")
+        //evaulator.set("metricName", "f1(1.0)")
+        evaulator.metricName = "f1"
 
         // We now treat the Pipeline as an Estimator, wrapping it in a CrossValidator instance.
 // This will allow us to jointly choose parameters for all Pipeline stages.
 // A CrossValidator requires an Estimator, a set of Estimator ParamMaps, and an Evaluator.
 // Note that the evaluator here is a BinaryClassificationEvaluator and its default metric
 // is areaUnderROC.
-        val cv = CrossValidator()
-                .setEstimator(pipeline)
-                .setEvaluator(evaulator)
-                .setEstimatorParamMaps(paramGrid)
-                .setNumFolds(10)
+        val cv = CrossValidator().setEstimator(pipeline).setEvaluator(evaulator).setEstimatorParamMaps(paramGrid).setNumFolds(10)
 
         // Run cross-validation, and choose the best set of parameters.
-        val cvModel = cv.fit(dataInRaw)
+        val cvModel = cv.fit(vtm)
 
         val model = cvModel.bestModel()
 
@@ -234,16 +223,13 @@ public class DecisionTreeInSpark() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
+            val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
                     .getOrCreate()
-            //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
-            //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
-            val docClass = DocumentClassification()
-            val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
-            evaulate10FoldDF(parsedCorpus)
+
+            evaulate10FoldDF(sparkSession, corpusInRaw, "earn")
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")

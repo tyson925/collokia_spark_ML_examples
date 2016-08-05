@@ -2,13 +2,15 @@ package uy.com.collokia.ml.util
 
 //import org.apache.spark.ml.tree.DecisionTreeModel
 import org.apache.spark.api.java.JavaRDD
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.PipelineStage
+import org.apache.spark.mllib.classification.LogisticRegressionModel
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.regression.LinearRegressionModel
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.tree.model.RandomForestModel
 import org.apache.spark.rdd.RDD
@@ -21,7 +23,7 @@ import weka.core.converters.ConverterUtils
 import java.io.File
 import java.util.*
 
-public fun predicateLogReg(model: LinearRegressionModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
+public fun predicateLogReg(model: LogisticRegressionModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
     }
@@ -140,7 +142,6 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>): Instances {
         atts.add(Attribute("Attribute" + att, att))
     }
 
-
     val numInstances = data.count()
     val dataset = Instances("Dataset", atts, numInstances.toInt())
     //dataset.insertAttributeAt(classAttribute,dataset.numAttributes())
@@ -148,9 +149,7 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>): Instances {
         val wekaInstance = SparseInstance(1.0, labeledPoint.features().toArray())
 
         if (labeledPoint.label() == 1.0) {
-            println(wekaInstance)
             wekaInstance.setValue(classAttribute, labeledPoint.label())
-            println(wekaInstance)
         }
 
         wekaInstance.setValue(classAttribute, labeledPoint.label())
@@ -158,7 +157,12 @@ public fun convertLabeledPointToArff(data: JavaRDD<LabeledPoint>): Instances {
     }
 
     return dataset
+}
 
+public fun Pipeline.addStage(stage : PipelineStage){
+    val stages = this.stages.toMutableList()
+    stages.add(stage)
+    this.stages = stages.toTypedArray()
 }
 
 public fun saveArff(dataSet: Instances, outFileName: String) {

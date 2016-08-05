@@ -1,18 +1,17 @@
 package uy.com.collokia.ml.logreg
 
 import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
-import org.apache.spark.mllib.evaluation.MulticlassMetrics
+import org.apache.spark.mllib.classification.LogisticRegressionModel
+import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.mllib.regression.LinearRegressionModel
-import org.apache.spark.mllib.regression.LinearRegressionWithSGD
 import org.apache.spark.mllib.util.MLUtils
-import uy.com.collokia.ml.util.*
+import uy.com.collokia.ml.util.evaulateAndPrintPrediction
+import uy.com.collokia.ml.util.predicateLogReg
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
 
-public class LinearRegressionInSpark(){
+public class LogisticRegressionInSpark(){
 
     public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
         val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
@@ -43,9 +42,9 @@ public class LinearRegressionInSpark(){
 
     }
 
-    public fun buildLogReg(trainData: JavaRDD<LabeledPoint>, numIterations : Int,stepSize : Double, numClasses: Int) : LinearRegressionModel {
+    public fun buildLogReg(trainData: JavaRDD<LabeledPoint>, numIterations : Int,stepSize : Double, numClasses: Int) : LogisticRegressionModel {
         println("Build logReg model with ${numClasses} with parameters numIterations=${numIterations}, stepSize=${stepSize}")
-        return LinearRegressionWithSGD.train(trainData.rdd(), numIterations, stepSize)
+        return LogisticRegressionWithSGD.train(trainData.rdd(), numClasses)
     }
 
 }
