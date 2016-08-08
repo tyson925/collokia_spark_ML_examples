@@ -23,6 +23,9 @@ import weka.core.converters.ConverterUtils
 import java.io.File
 import java.util.*
 
+
+public val REUTERS_DATA = "./data/reuters/json/reuters.json"
+
 public fun predicateLogReg(model: LogisticRegressionModel, testData: JavaRDD<LabeledPoint>): RDD<Tuple2<Any, Any>> {
     val predictionsAndLabels = testData.map { instance ->
         Tuple2(model.predict(DenseVector(instance.features().toDense().values())) as Any, instance.label() as Any)
@@ -80,19 +83,20 @@ public fun printMulticlassMetrics(evaulation: MulticlassMetrics): String {
     }).joinToString("\n") + "\n")
     println("confusionMatrix:\n")
     //res.append("${evaulation.confusionMatrix()}\n")
-    res.append(printMatrix(evaulation.confusionMatrix(), evaulation.labels()))
+    res.append(printMatrix(evaulation.confusionMatrix()))
     return res.toString()
 }
 
-private fun printMatrix(matrix: Matrix, labels: DoubleArray): String {
+public fun printMatrix(matrix: Matrix): String {
     val res = StringBuffer()
     res.append("\t\t")
-    labels.forEach { label ->
+
+    (0..matrix.numCols()-1).forEach { label ->
         res.append("${label},\t")
     }
     res.append("\n")
-    (0..labels.size - 1).forEach { i ->
-        res.append("${labels[i]},\t")
+    (0..matrix.numCols() - 1).forEach { i ->
+        res.append("${i},\t")
         (0..matrix.numCols() - 1).forEach { col ->
             res.append("${matrix.apply(i, col)},\t")
         }

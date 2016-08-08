@@ -2,6 +2,7 @@ package uy.com.collokia.ml.logreg
 
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.mllib.classification.LogisticRegressionModel
+import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS
 import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
@@ -35,7 +36,7 @@ public class LogisticRegressionInSpark(){
 
         trainData.unpersist()
 
-        println("evaulate random forest model...")
+        println("evaulate logistic regression model...")
         val testPrediction = predicateLogReg(model, testData)
 
         return evaulateAndPrintPrediction(numClasses,testPrediction)
@@ -44,7 +45,7 @@ public class LogisticRegressionInSpark(){
 
     public fun buildLogReg(trainData: JavaRDD<LabeledPoint>, numIterations : Int,stepSize : Double, numClasses: Int) : LogisticRegressionModel {
         println("Build logReg model with ${numClasses} with parameters numIterations=${numIterations}, stepSize=${stepSize}")
-        return LogisticRegressionWithSGD.train(trainData.rdd(), numClasses)
+        return LogisticRegressionWithLBFGS().setNumClasses(2).run(trainData.rdd())
     }
 
 }

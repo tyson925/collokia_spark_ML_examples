@@ -6,6 +6,7 @@ import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.classification.OneVsRest
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.tuning.CrossValidator
 import org.apache.spark.ml.tuning.ParamGridBuilder
@@ -18,10 +19,7 @@ import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.util.evaulateAndPrintPrediction
-import uy.com.collokia.ml.util.predicateDecisionTree
-import uy.com.collokia.ml.util.printMulticlassMetrics
-import uy.com.collokia.ml.util.randomClassifier
+import uy.com.collokia.ml.util.*
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
@@ -223,7 +221,7 @@ public class DecisionTreeInSpark() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val corpusInRaw = jsc.textFile("./data/reuters/json/reuters.json").cache().repartition(8)
+            val corpusInRaw = jsc.textFile(REUTERS_DATA).cache().repartition(8)
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
