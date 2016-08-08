@@ -81,16 +81,18 @@ public class DocumentClassification() : Serializable {
     }
 
     private fun filterToTopCategories(corpusInRaw: JavaRDD<String>): JavaRDD<ReutersRow> {
-        val corpusRow = corpusInRaw.flatMap { line ->
+        val corpusRow = corpusInRaw.map { line ->
             val doc = MAPPER.readValue(line, ReutersDocument::class.java)
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
             val content = doc.body + (doc.title ?: "")
 
             val intersectCategory = topics.intersect(topCategories)
+            intersectCategory.first()
             val rows = intersectCategory.map { category ->
                 ReutersRow(category, content)
             }.iterator()
-            rows
+            ReutersRow(intersectCategory.first(),content)
+            //rows
         }
         return corpusRow
     }
@@ -256,6 +258,7 @@ public class DocumentClassification() : Serializable {
 
         val vtmPipeline = constructVTMPipeline()
         val data = vtmPipeline.fit(parsedCorpus).transform(parsedCorpus)
+        data.show(3)
         return data
     }
 

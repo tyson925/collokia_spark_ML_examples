@@ -3,7 +3,9 @@ package uy.com.collokia.ml.rdf
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.classification.OneVsRest
+import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.util.MetadataUtils
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
@@ -24,12 +26,17 @@ public class OneVsRestInSpark() {
 
         val documentClassification = DocumentClassification()
         val (train, test) = documentClassification.constructVTMData(sparkSession, corpusInRaw, null).randomSplit(doubleArrayOf(0.9, 0.1))
-
+        val labels = train.select("category").toJavaRDD().map { it-> it.getString(0) }.groupBy({ it -> it }).keys().collect()
 
         val impurity = "gini"
         val depth = 10
         val bins = 300
         val dt = DecisionTreeClassifier().setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
+
+        val lr = LogisticRegression()
+                .setMaxIter(10)
+                .setTol(1E-6)
+                .setFitIntercept(true)
 
         val oneVsRest = OneVsRest().setClassifier(dt).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
 
@@ -37,8 +44,17 @@ public class OneVsRestInSpark() {
 
         val predictions = ovrModel.transform(test)
 
+// Convert indexed labels back to original labels.
+        val labelConverter = IndexToString()
+                .setInputCol("prediction")
+                .setOutputCol("predictedLabel")
+                .setLabels(labels.toTypedArray())
+
+
+        predictions.show(3)
         // evaluate the model
         val predictionsAndLabels = predictions.select("prediction", DocumentClassification.labelIndexCol).toJavaRDD().map({ row -> Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any) })
+
 
         val metrics = MulticlassMetrics(predictionsAndLabels.rdd())
         val confusionMatrix = metrics.confusionMatrix()
