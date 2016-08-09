@@ -1,6 +1,10 @@
 package uy.com.collokia.ml.util
 
 //import org.apache.spark.ml.tree.DecisionTreeModel
+import de.l3s.boilerpipe.BoilerpipeProcessingException
+import de.l3s.boilerpipe.extractors.ArticleExtractor
+import de.l3s.boilerpipe.extractors.CanolaExtractor
+import de.l3s.boilerpipe.sax.BoilerpipeSAXInput
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.PipelineStage
@@ -14,6 +18,9 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.model.DecisionTreeModel
 import org.apache.spark.mllib.tree.model.RandomForestModel
 import org.apache.spark.rdd.RDD
+import org.slf4j.Logger
+import org.xml.sax.InputSource
+import org.xml.sax.SAXException
 import scala.Tuple2
 import weka.core.Attribute
 import weka.core.Instances
@@ -21,6 +28,11 @@ import weka.core.SparseInstance
 import weka.core.converters.ArffSaver
 import weka.core.converters.ConverterUtils
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.net.MalformedURLException
+import java.net.URL
+import java.net.UnknownHostException
 import java.util.*
 
 
@@ -183,4 +195,50 @@ public fun loadArff(arffFileName: String): Instances {
     val data = source.getDataSet()
     println("load testData from ${arffFileName}")
     return data
+}
+
+public fun extractContentBoiler(url : URL, logger : Logger): String {
+
+
+    val RET = try {
+
+        val input = InputSource(url.openStream())
+
+        val doc = BoilerpipeSAXInput(input).getTextDocument()
+
+        // perform the extraction/classification process on "doc"
+        ArticleExtractor.INSTANCE.process(doc)
+
+
+        val content = CanolaExtractor.INSTANCE.getText(doc)
+
+        content
+    } catch (e: BoilerpipeProcessingException) {
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    } catch (e: SAXException) {
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    } catch (e: MalformedURLException) {
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    } catch (e : IOException){
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    } catch (e: FileNotFoundException) {
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    } catch (e : UnknownHostException){
+        logger.error("problem with url:\t${url}\n ${e.stackTrace.joinToString("\n")}")
+        println("problem with url:\t${url}")
+        "Exception"
+    }
+    RET
+
+    return RET
 }

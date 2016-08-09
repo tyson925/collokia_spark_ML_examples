@@ -15,7 +15,6 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
-import org.elasticsearch.spark.sql.api.java.JavaEsSparkSQL
 import scala.Tuple2
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
@@ -39,6 +38,8 @@ public data class DocumentRow(var category: String, var content: String) : Seria
 
 public data class ClassifierResults(val category: String, val decisiontTree: Double, val randomForest: Double, val svm: Double, val logReg: Double) : Serializable
 
+public val VTM_PIPELINE = "./data/model/vtmPipeLine"
+
 public class DocumentClassification() : Serializable {
 
     companion object {
@@ -47,6 +48,7 @@ public class DocumentClassification() : Serializable {
         //val topCategories = listOf("earn", "acq")
         public val featureCol = "normIdfFeatures"
         public val labelIndexCol = "categoryIndex"
+
     }
 
     public fun readDzoneFromEs(sparkSession: SparkSession,jsc: JavaSparkContext) : Dataset<DocumentRow> {
@@ -71,7 +73,7 @@ public class DocumentClassification() : Serializable {
         return documentRddToDF(sparkSession, corpusRow)
     }
 
-    private fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>) : Dataset<DocumentRow> {
+    public fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>) : Dataset<DocumentRow> {
         println("corpus size: " + corpusRow.count())
 
         val reutersEncoder = Encoders.bean(DocumentRow::class.java)
