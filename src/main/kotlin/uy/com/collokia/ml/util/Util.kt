@@ -202,7 +202,7 @@ public fun extractContentBoiler(url : URL, logger : Logger): String {
 
     val RET = try {
 
-        val input = InputSource(url.openStream())
+        val input = InputSource(url.openConnection().inputStream)
 
         val doc = BoilerpipeSAXInput(input).getTextDocument()
 
