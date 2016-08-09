@@ -14,6 +14,8 @@ import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
+import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
+import org.elasticsearch.spark.sql.api.java.JavaEsSparkSQL
 import scala.Tuple2
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
@@ -22,6 +24,8 @@ import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.ml.util.REUTERS_DATA
 import uy.com.collokia.ml.util.convertLabeledPointToArff
 import uy.com.collokia.ml.util.saveArff
+import uy.com.collokia.util.component1
+import uy.com.collokia.util.component2
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
 import java.io.File
@@ -31,7 +35,7 @@ public data class ReutersDocument(val title: String?, var body: String?, val dat
                                   val topics: List<String>?, val places: List<String>?, val organisations: List<String>?, val id: Int) : Serializable
 
 //required "var" according to `Encoders.bean`
-public data class ReutersRow(var category: String, var content: String) : Serializable
+public data class DocumentRow(var category: String, var content: String) : Serializable
 
 public data class ClassifierResults(val category: String, val decisiontTree: Double, val randomForest: Double, val svm: Double, val logReg: Double) : Serializable
 
@@ -45,7 +49,18 @@ public class DocumentClassification() : Serializable {
         public val labelIndexCol = "categoryIndex"
     }
 
-    public fun parseCorpus(sparkSession: SparkSession, corpusInRaw: JavaRDD<String>, subTopic: String?): Dataset<ReutersRow> {
+    public fun readDzoneFromEs(sparkSession: SparkSession,jsc: JavaSparkContext) : Dataset<DocumentRow> {
+        val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/Article").map { line ->
+            val (id, map) = line
+            val category = map.getOrElse("category") { "other" } as String
+            val content = map.getOrElse("content") { "other" } as String
+            val title = map.getOrElse("title") { "other" } as String
+            DocumentRow(category, content + "\n" + title)
+        }
+        return documentRddToDF(sparkSession,corpusRow)
+    }
+
+    public fun parseCorpus(sparkSession: SparkSession, corpusInRaw: JavaRDD<String>, subTopic: String?): Dataset<DocumentRow> {
 
         val corpusRow = subTopic?.let {
             filterToOneCategory(corpusInRaw, subTopic)
@@ -53,9 +68,13 @@ public class DocumentClassification() : Serializable {
 
         corpusInRaw.unpersist()
 
+        return documentRddToDF(sparkSession, corpusRow)
+    }
+
+    private fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>) : Dataset<DocumentRow> {
         println("corpus size: " + corpusRow.count())
 
-        val reutersEncoder = Encoders.bean(ReutersRow::class.java)
+        val reutersEncoder = Encoders.bean(DocumentRow::class.java)
 
         val textDataFrame = sparkSession.createDataset(corpusRow.rdd(), reutersEncoder)
 
@@ -64,23 +83,23 @@ public class DocumentClassification() : Serializable {
         return textDataFrame
     }
 
-    private fun filterToOneCategory(corpusInRaw: JavaRDD<String>, category: String): JavaRDD<ReutersRow> {
+    private fun filterToOneCategory(corpusInRaw: JavaRDD<String>, category: String): JavaRDD<DocumentRow> {
         val corpusRow = corpusInRaw.map { line ->
             val doc = MAPPER.readValue(line, ReutersDocument::class.java)
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
             val content = doc.body + (doc.title ?: "")
 
             val row = if (topics.contains(category)) {
-                ReutersRow(category, content)
+                DocumentRow(category, content)
             } else {
-                ReutersRow("other", content)
+                DocumentRow("other", content)
             }
             row
         }
         return corpusRow
     }
 
-    private fun filterToTopCategories(corpusInRaw: JavaRDD<String>): JavaRDD<ReutersRow> {
+    private fun filterToTopCategories(corpusInRaw: JavaRDD<String>): JavaRDD<DocumentRow> {
         val corpusRow = corpusInRaw.map { line ->
             val doc = MAPPER.readValue(line, ReutersDocument::class.java)
             val topics = doc.topics?.intersect(topCategories) ?: listOf<String>()
@@ -89,22 +108,22 @@ public class DocumentClassification() : Serializable {
             val intersectCategory = topics.intersect(topCategories)
             intersectCategory.first()
             val rows = intersectCategory.map { category ->
-                ReutersRow(category, content)
+                DocumentRow(category, content)
             }.iterator()
-            ReutersRow(intersectCategory.first(),content)
+            DocumentRow(intersectCategory.first(), content)
             //rows
         }
         return corpusRow
     }
 
-    public fun exractFeaturesFromCorpus(textDataFrame: Dataset<ReutersRow>): Dataset<Row> {
+    public fun exractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row> {
 
-        val indexer = StringIndexer().setInputCol(ReutersRow::category.name).setOutputCol("categoryIndex").fit(textDataFrame)
+        val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol("categoryIndex").fit(textDataFrame)
         println(indexer.labels().joinToString("\t"))
 
         val indexedTextDataFrame = indexer.transform(textDataFrame)
 
-        val tokenizer = Tokenizer().setInputCol(ReutersRow::content.name).setOutputCol("words")
+        val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
         val wordsDataFrame = tokenizer.transform(indexedTextDataFrame)
 
         val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol(featureCol)
@@ -232,9 +251,9 @@ public class DocumentClassification() : Serializable {
     }
 
     public fun constructVTMPipeline(): Pipeline {
-        val indexer = StringIndexer().setInputCol(ReutersRow::category.name).setOutputCol(labelIndexCol)
+        val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
-        val tokenizer = Tokenizer().setInputCol(ReutersRow::content.name).setOutputCol("words")
+        val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
 
         val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
 
@@ -331,13 +350,27 @@ public class DocumentClassification() : Serializable {
     public fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
+                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false")
 
             val jsc = JavaSparkContext(sparkConf)
+
+
+            val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
+
+
+            val test = JavaEsSpark.esRDD(jsc, "dzone_data/Article").mapToPair { line ->
+                Tuple2(line._2["category"], 1)
+            }.groupByKey()
+            println(test.take(11).joinToString("\n"))
+            //val test = sparkSession.read().format("org.elasticsearch.spark.sql").option(
+            //        "es.field.read.as.array.exclude","labels").load("dzone_data/Article")
+// inspect the data
+            println(test.count())
 
             //val testData = parseCorpus(jsc)
 
             //reutersDataEvaulation(jsc)
-            tenFoldReutersDataEvaulation(jsc)
+            //tenFoldReutersDataEvaulation(jsc)
             //tenFoldReutersDataEvaulationWithClassifiers(jsc)
             //val dt = DecisionTreeInSpark()
             //dt.evaulateSimpleForest(testData)

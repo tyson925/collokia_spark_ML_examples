@@ -6,7 +6,7 @@ import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.classification.OneVsRest
 import org.apache.spark.ml.feature.IndexToString
-import org.apache.spark.ml.util.MetadataUtils
+import org.apache.spark.ml.feature.StringIndexerModel
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
@@ -25,8 +25,17 @@ public class OneVsRestInSpark() {
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
         val documentClassification = DocumentClassification()
-        val (train, test) = documentClassification.constructVTMData(sparkSession, corpusInRaw, null).randomSplit(doubleArrayOf(0.9, 0.1))
-        val labels = train.select("category").toJavaRDD().map { it-> it.getString(0) }.groupBy({ it -> it }).keys().collect()
+        //val parsedCorpus = documentClassification.parseCorpus(sparkSession, corpusInRaw, null)
+        val parsedCorpus = documentClassification.readDzoneFromEs(sparkSession,jsc)
+
+        val vtmDataPipeline = documentClassification.constructVTMPipeline()
+
+
+        val indexer = vtmDataPipeline.fit(parsedCorpus).stages()[0] as StringIndexerModel
+
+        val (train, test) = vtmDataPipeline.fit(parsedCorpus).transform(parsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
+        //val (train, test) = documentClassification.constructVTMData(sparkSession, corpusInRaw, null).randomSplit(doubleArrayOf(0.9, 0.1))
+        //val labels = train.select("category").toJavaRDD().map { it-> it.getString(0) }.groupBy({ it -> it }).keys().collect()
 
         val impurity = "gini"
         val depth = 10
@@ -48,7 +57,7 @@ public class OneVsRestInSpark() {
         val labelConverter = IndexToString()
                 .setInputCol("prediction")
                 .setOutputCol("predictedLabel")
-                .setLabels(labels.toTypedArray())
+                .setLabels(indexer.labels())
 
 
         predictions.show(3)
@@ -63,7 +72,7 @@ public class OneVsRestInSpark() {
 //        val predictionColSchema = predictions.schema().fields()[0]
 //        val numClasses = MetadataUtils.getNumClasses(predictionColSchema).get()
 
-        val fprs = (0..9).map({ p -> Tuple2(p, metrics.fMeasure(p.toDouble())) })
+        val fprs = (0..indexer.labels().size-1).map({ p -> Tuple2(indexer.labels()[p], metrics.fMeasure(p.toDouble())) })
 
         println(printMatrix(confusionMatrix))
 
@@ -73,6 +82,7 @@ public class OneVsRestInSpark() {
     public fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
+                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false")
 
             val jsc = JavaSparkContext(sparkConf)
             evaulateOneVsRest(jsc)
