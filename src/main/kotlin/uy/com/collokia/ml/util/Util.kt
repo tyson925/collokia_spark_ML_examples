@@ -92,12 +92,30 @@ public fun printMatrix(matrix: Matrix): String {
     val res = StringBuffer()
     res.append("\t\t")
 
-    (0..matrix.numCols()-1).forEach { label ->
-        res.append("${label},\t")
+    (0..matrix.numCols()-1).forEach { labelIndex ->
+        res.append("${labelIndex},\t")
     }
     res.append("\n")
     (0..matrix.numCols() - 1).forEach { i ->
         res.append("${i},\t")
+        (0..matrix.numCols() - 1).forEach { col ->
+            res.append("${matrix.apply(i, col)},\t")
+        }
+        res.append("\n")
+    }
+    return res.toString()
+}
+
+public fun printMatrix(matrix: Matrix, labels : List<String>): String {
+    val res = StringBuffer()
+    res.append("\t\t")
+
+    (0..matrix.numCols()-1).forEach { labelIndex ->
+        res.append("${labels[labelIndex]},\t")
+    }
+    res.append("\n")
+    (0..matrix.numCols() - 1).forEach { i ->
+        res.append("${labels[i]},\t")
         (0..matrix.numCols() - 1).forEach { col ->
             res.append("${matrix.apply(i, col)},\t")
         }

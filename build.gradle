@@ -19,45 +19,32 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
-        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
     }
 }
 
 apply plugin: 'kotlin'
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'application'
-apply plugin: 'gradle-one-jar'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
-mainClassName = "uy.collokia.flink.soData.S3DataRederOnEMR"
 
 task oneJar(type: OneJar) {
     mainClass = 'uy.collokia.flink.soData.S3DataRederOnEMR'
 }
 
 dependencies {
-//    compile "xml-apis:xml-apis:1.4.01"
     compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.0'
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
     compile "info.bliki.wiki:bliki-core:3.0.19"
-    //complie "com.cloudera.datascience:common:1.0.2"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.apache.spark:spark-mllib_2.10:${version_Spark}"
     compile "org.apache.spark:spark-sql_2.10:${version_Spark}"
     compile "org.apache.spark:spark-core_2.10:${version_Spark}"
     compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
-    //compile "org.apache.spark:spark-streaming-twitter_2.10:1.6.2"
     compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
-//    compile "com.cybozu.labs:langdetect:1.1-20120112"
-    //compile 'de.l3s.boilerpipe:boilerpipe:1.1.0'
-    //compile 'xerces:xerces:2.4.0'
-    //compile group: 'xerces', name: 'xercesImpl', version: '2.4.0'
-//    compile 'org.jsoup:jsoup:1.9.1'
-//    compile 'net.sourceforge.nekohtml:nekohtml:1.9.22'
 
     compile ("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR"){
 

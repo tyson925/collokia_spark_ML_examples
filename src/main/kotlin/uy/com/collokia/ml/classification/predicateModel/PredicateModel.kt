@@ -37,13 +37,19 @@ public class PredicateModel() : Serializable {
 
         val urls = loadUrls()
 
-        val urlContents = urls.map { url ->
+        val contents = jsc.parallelize(listOf("big data big data apache spark","big data"))
+
+        /*val urlContents = urls.map { url ->
 //            val content = extractContentBoiler(URL(url), LOG)
-            val content = "big data"
+            val content = "big data, big data, apache spark,"
             println("content: ${content}")
             DocumentRow("bigData", content)
+        }*/
+        val urlContentsRDD = contents.map { content ->
+            DocumentRow("bigData", content)
         }
-        val urlContentsRDD = jsc.parallelize(urlContents)
+
+        //val urlContentsRDD = jsc.parallelize(urlContents)
 
         val documentClassification = DocumentClassification()
 

@@ -18,7 +18,6 @@ import uy.com.collokia.ml.util.deleteIfExists
 import uy.com.collokia.ml.util.printMatrix
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
-import java.io.File
 
 public val OVR_MODEL = "./data/model/ovrDectisonTree"
 public val LABELS = "./data/model/labelIndexer"
@@ -97,7 +96,7 @@ public class OneVsRestInSpark() {
 
         val fprs = (0..indexer.labels().size - 1).map({ p -> Tuple2(indexer.labels()[p], metrics.fMeasure(p.toDouble())) })
 
-        println(printMatrix(confusionMatrix))
+        println(printMatrix(confusionMatrix,indexer.labels().toList()))
 
         println(fprs.joinToString("\n"))
     }
