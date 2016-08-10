@@ -1,6 +1,6 @@
 group 'com.collokia'
 version '1.0-SNAPSHOT'
-description 'collokia-spark streaming testbed'
+description 'collokia-spark machine learning examples'
 
 buildscript {
     ext.kotlin_version = '1.0.1'
@@ -39,6 +39,7 @@ task oneJar(type: OneJar) {
 }
 
 dependencies {
+//    compile "xml-apis:xml-apis:1.4.01"
     compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.0'
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
     compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
@@ -51,11 +52,12 @@ dependencies {
     compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
     //compile "org.apache.spark:spark-streaming-twitter_2.10:1.6.2"
     compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
-    compile "com.cybozu.labs:langdetect:1.1-20120112"
-    compile 'de.l3s.boilerpipe:boilerpipe:1.1.0'
-    compile 'xerces:xerces:2.4.0'
-    compile 'org.jsoup:jsoup:1.9.1'
-    compile 'net.sourceforge.nekohtml:nekohtml:1.9.22'
+//    compile "com.cybozu.labs:langdetect:1.1-20120112"
+    //compile 'de.l3s.boilerpipe:boilerpipe:1.1.0'
+    //compile 'xerces:xerces:2.4.0'
+    //compile group: 'xerces', name: 'xercesImpl', version: '2.4.0'
+//    compile 'org.jsoup:jsoup:1.9.1'
+//    compile 'net.sourceforge.nekohtml:nekohtml:1.9.22'
 
     compile ("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR"){
 
@@ -63,6 +65,7 @@ dependencies {
         exclude group: "org.apache.pig"
         exclude group: "org.apache.storm"
     }
+
     testCompile("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR") {
         exclude group: "cascading"
         exclude group: "org.apache.pig"
@@ -115,6 +118,7 @@ repositories {
 task wrapper(type: Wrapper) {
     gradleVersion = '2.8'
 }
+
 repositories {
     mavenCentral()
     jcenter()

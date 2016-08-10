@@ -5,7 +5,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.PipelineModel
-import org.apache.spark.ml.classification.OneVsRest
 import org.apache.spark.ml.classification.OneVsRestModel
 import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
@@ -16,12 +15,10 @@ import uy.com.collokia.ml.classification.DocumentRow
 import uy.com.collokia.ml.classification.VTM_PIPELINE
 import uy.com.collokia.ml.rdf.LABELS
 import uy.com.collokia.ml.rdf.OVR_MODEL
-import uy.com.collokia.ml.util.extractContentBoiler
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
-import java.io.Serializable
 import java.io.File
-import java.net.URL
+import java.io.Serializable
 import java.util.*
 
 public class PredicateModel() : Serializable {
@@ -32,7 +29,7 @@ public class PredicateModel() : Serializable {
 
     }
 
-    public fun predicateModel(jsc : JavaSparkContext) {
+    public fun predicateModel(jsc: JavaSparkContext) {
         val vtmPipeline = PipelineModel.load(VTM_PIPELINE)
         val ovrModel = OneVsRestModel.load(OVR_MODEL)
 
@@ -41,15 +38,16 @@ public class PredicateModel() : Serializable {
         val urls = loadUrls()
 
         val urlContents = urls.map { url ->
-            val content = extractContentBoiler(URL(url),LOG)
+//            val content = extractContentBoiler(URL(url), LOG)
+            val content = "big data"
             println("content: ${content}")
-            DocumentRow("bigData",content)
+            DocumentRow("bigData", content)
         }
         val urlContentsRDD = jsc.parallelize(urlContents)
 
         val documentClassification = DocumentClassification()
 
-        val test = vtmPipeline.transform(documentClassification.documentRddToDF(sparkSession,urlContentsRDD))
+        val test = vtmPipeline.transform(documentClassification.documentRddToDF(sparkSession, urlContentsRDD))
 
         val indexer = StringIndexerModel.load(LABELS)
 
@@ -59,20 +57,19 @@ public class PredicateModel() : Serializable {
                 .setLabels(indexer.labels())
 
 
-        val predicatePipeline = Pipeline().setStages(arrayOf(ovrModel,labelConverter))
-
+        val predicatePipeline = Pipeline().setStages(arrayOf(ovrModel, labelConverter))
 
 
         val predictions = predicatePipeline.fit(test).transform(test)
         //ovrModel.transform(test).show()
         //val predictions = labelConverter.transform()
-        predictions.show()
+        predictions.show(false)
     }
 
 
     private fun loadUrls(): List<String> {
         val res = LinkedList<String>()
-        File("./data/urls/urls").forEachLine { line ->
+        File("./data/urls/url").forEachLine { line ->
             res.add(line)
         }
         return res
@@ -84,17 +81,22 @@ public class PredicateModel() : Serializable {
                     .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false")
 
             val jsc = JavaSparkContext(sparkConf)
-predicateModel(jsc)
+            predicateModel(jsc)
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+    }
+
+    public fun downloadOrigoData(url: String) {
+//        println(extractContentBoiler(URL(url), LOG))
     }
 
 }
 
 
 fun main(args: Array<String>) {
-val predicateModel = PredicateModel()
+    val predicateModel = PredicateModel()
     predicateModel.runOnSpark()
     //extractContentBoiler(URL("https://jaceklaskowski.gitbooks.io/mastering-apache-spark/content/spark-mllib-models.html"), PredicateModel.LOG)
+    //predicateModel.downloadOrigoData("http://data-artisans.com/extending-the-yahoo-streaming-benchmark/")
 }

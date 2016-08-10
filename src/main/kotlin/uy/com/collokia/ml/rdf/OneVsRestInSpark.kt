@@ -14,9 +14,11 @@ import scala.Tuple2
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.VTM_PIPELINE
 import uy.com.collokia.ml.util.REUTERS_DATA
+import uy.com.collokia.ml.util.deleteIfExists
 import uy.com.collokia.ml.util.printMatrix
 import uy.com.collokia.util.formatterToTimePrint
 import uy.com.collokia.util.measureTimeInMillis
+import java.io.File
 
 public val OVR_MODEL = "./data/model/ovrDectisonTree"
 public val LABELS = "./data/model/labelIndexer"
@@ -37,10 +39,15 @@ public class OneVsRestInSpark() {
 
         val vtmPiplineModel = vtmDataPipeline.fit(parsedCorpus)
         val indexer = vtmPiplineModel.stages()[0] as StringIndexerModel
-        indexer.save(LABELS)
+        if (deleteIfExists(LABELS)){
+            indexer.save(LABELS)
+        }
 
         val (train, test) = vtmPiplineModel.transform(parsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
-        vtmPiplineModel.save(VTM_PIPELINE)
+        if (deleteIfExists(VTM_PIPELINE)){
+            vtmPiplineModel.save(VTM_PIPELINE)
+        }
+
         //val (train, test) = documentClassification.constructVTMData(sparkSession, corpusInRaw, null).randomSplit(doubleArrayOf(0.9, 0.1))
         //val labels = train.select("category").toJavaRDD().map { it-> it.getString(0) }.groupBy({ it -> it }).keys().collect()
 
@@ -58,7 +65,9 @@ public class OneVsRestInSpark() {
 
         val ovrModel = oneVsRest.fit(train)
 
-        ovrModel.save(OVR_MODEL)
+        if (deleteIfExists(OVR_MODEL)){
+            ovrModel.save(OVR_MODEL)
+        }
 
         // Convert indexed labels back to original labels.
         val labelConverter = IndexToString()
