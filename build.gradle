@@ -30,14 +30,11 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 
-task oneJar(type: OneJar) {
-    mainClass = 'uy.collokia.flink.soData.S3DataRederOnEMR'
-}
 
 dependencies {
     compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.0'
-    compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
-    compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
+    //compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}"
+    //compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
     compile "info.bliki.wiki:bliki-core:3.0.19"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.apache.spark:spark-mllib_2.10:${version_Spark}"
@@ -59,6 +56,7 @@ dependencies {
         exclude group: "org.apache.storm"
     }
 
+    compile project(path: ':collokia-stanford-CoreNLP')
     compile "joda-time:joda-time:$version_jodatime"
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson"
     compile "com.fasterxml.jackson.core:jackson-core:$version_jackson"

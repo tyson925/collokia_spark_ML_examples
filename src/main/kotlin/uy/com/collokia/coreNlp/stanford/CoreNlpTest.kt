@@ -6,6 +6,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SparkSession
 import scala.Serializable
 import scala.Tuple2
+import uy.com.collokia.stanford.coreNLP.CoreNLP
 import java.util.*
 
 public class TestData(val id: Int, val text: String) : Serializable

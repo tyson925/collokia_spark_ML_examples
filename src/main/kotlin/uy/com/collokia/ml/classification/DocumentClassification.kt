@@ -16,7 +16,6 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
 import scala.Tuple2
-import uy.com.collokia.coreNlp.stanford.CoreNLP
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.rdf.RandomForestInSpark
@@ -24,6 +23,7 @@ import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.ml.util.REUTERS_DATA
 import uy.com.collokia.ml.util.convertLabeledPointToArff
 import uy.com.collokia.ml.util.saveArff
+import uy.com.collokia.stanford.coreNLP.CoreNLP
 import uy.com.collokia.util.component1
 import uy.com.collokia.util.component2
 import uy.com.collokia.util.formatterToTimePrint
