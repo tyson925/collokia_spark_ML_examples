@@ -21,6 +21,8 @@ import java.io.File
 import java.io.Serializable
 import java.util.*
 
+public data class Article(val id : String, val content : String, val title : String, val labels : List<String>, val date : String, val category : String) : Serializable
+
 public class PredicateModel() : Serializable {
 
     companion object {
@@ -39,17 +41,17 @@ public class PredicateModel() : Serializable {
 
         val contents = jsc.parallelize(listOf("big data big data apache spark","big data"))
 
-        /*val urlContents = urls.map { url ->
-//            val content = extractContentBoiler(URL(url), LOG)
-            val content = "big data, big data, apache spark,"
-            println("content: ${content}")
-            DocumentRow("bigData", content)
-        }*/
-        val urlContentsRDD = contents.map { content ->
+        val urlContents = File("./data/urls/corpus.json").readLines().map { line ->
+         val article =   MAPPER.readValue(line,Article::class.java)
+            val content = article.content + "\n" + article.title
             DocumentRow("bigData", content)
         }
 
-        //val urlContentsRDD = jsc.parallelize(urlContents)
+        /*val urlContentsRDD = contents.map { content ->
+            DocumentRow("bigData", content)
+        }*/
+
+        val urlContentsRDD = jsc.parallelize(urlContents)
 
         val documentClassification = DocumentClassification()
 
@@ -69,7 +71,7 @@ public class PredicateModel() : Serializable {
         val predictions = predicatePipeline.fit(test).transform(test)
         //ovrModel.transform(test).show()
         //val predictions = labelConverter.transform()
-        predictions.show(false)
+        predictions.show()
     }
 
 

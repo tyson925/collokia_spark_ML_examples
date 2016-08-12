@@ -16,6 +16,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
 import scala.Tuple2
+import uy.com.collokia.coreNlp.stanford.CoreNLP
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.rdf.RandomForestInSpark
@@ -252,20 +253,24 @@ public class DocumentClassification() : Serializable {
         println(results)
     }
 
-    public fun constructVTMPipeline(): Pipeline {
+    public fun constructVTMPipeline(sparkSession : SparkSession): Pipeline {
         val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
-        val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
+        //val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
 
-        val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
+        val coreNLP = CoreNLP(sparkSession, "pos, lemma").setInputCol(DocumentRow::content.name)
 
-        val cvModel = CountVectorizer().setInputCol(remover.outputCol).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(2.0)
+        val remover = StopWordsRemover().setInputCol(coreNLP.outputCol).setOutputCol("filteredWords")
+
+        val ngram = NGram().setInputCol(remover.outputCol).setOutputCol("ngrams")
+
+        val cvModel = CountVectorizer().setInputCol(ngram.outputCol).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(2.0)
 
         val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
         val normalizer = Normalizer().setInputCol(idf.outputCol).setOutputCol(featureCol).setP(1.0)
 
-        val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, cvModel, idf, normalizer))
+        val pipeline = Pipeline().setStages(arrayOf(indexer,coreNLP, remover,ngram, cvModel, idf, normalizer))
 
         return pipeline
     }
@@ -277,7 +282,7 @@ public class DocumentClassification() : Serializable {
 
         println("category:\t${category}")
 
-        val vtmPipeline = constructVTMPipeline()
+        val vtmPipeline = constructVTMPipeline(sparkSession)
         val data = vtmPipeline.fit(parsedCorpus).transform(parsedCorpus)
         data.show(3)
         return data

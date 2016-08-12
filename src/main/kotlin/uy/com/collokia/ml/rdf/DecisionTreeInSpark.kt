@@ -36,7 +36,7 @@ public class DecisionTreeInSpark() : Serializable {
 
         val documentClassification = DocumentClassification()
 
-        val vtmPipeline = documentClassification.constructVTMPipeline()
+        val vtmPipeline = documentClassification.constructVTMPipeline(sparkSession)
 
         val data =documentClassification.parseCorpus(sparkSession,dataInRaw,category)
         val impurity = "gini"

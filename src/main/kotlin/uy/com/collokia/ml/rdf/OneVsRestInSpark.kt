@@ -34,16 +34,16 @@ public class OneVsRestInSpark() {
         //val parsedCorpus = documentClassification.parseCorpus(sparkSession, corpusInRaw, null)
         val parsedCorpus = documentClassification.readDzoneFromEs(sparkSession, jsc)
 
-        val vtmDataPipeline = documentClassification.constructVTMPipeline()
+        val vtmDataPipeline = documentClassification.constructVTMPipeline(sparkSession)
 
         val vtmPiplineModel = vtmDataPipeline.fit(parsedCorpus)
         val indexer = vtmPiplineModel.stages()[0] as StringIndexerModel
-        if (deleteIfExists(LABELS)){
+        if (deleteIfExists(LABELS)) {
             indexer.save(LABELS)
         }
 
         val (train, test) = vtmPiplineModel.transform(parsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
-        if (deleteIfExists(VTM_PIPELINE)){
+        if (deleteIfExists(VTM_PIPELINE)) {
             vtmPiplineModel.save(VTM_PIPELINE)
         }
 
@@ -61,10 +61,10 @@ public class OneVsRestInSpark() {
                 .setFitIntercept(true)
 
         val oneVsRest = OneVsRest().setClassifier(dt).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
-
+        train.show(3)
         val ovrModel = oneVsRest.fit(train)
 
-        if (deleteIfExists(OVR_MODEL)){
+        if (deleteIfExists(OVR_MODEL)) {
             ovrModel.save(OVR_MODEL)
         }
 
@@ -96,7 +96,7 @@ public class OneVsRestInSpark() {
 
         val fprs = (0..indexer.labels().size - 1).map({ p -> Tuple2(indexer.labels()[p], metrics.fMeasure(p.toDouble())) })
 
-        println(printMatrix(confusionMatrix,indexer.labels().toList()))
+        println(printMatrix(confusionMatrix, indexer.labels().toList()))
 
         println(fprs.joinToString("\n"))
     }
