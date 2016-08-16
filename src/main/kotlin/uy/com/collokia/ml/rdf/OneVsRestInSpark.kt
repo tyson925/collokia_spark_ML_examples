@@ -3,11 +3,10 @@ package uy.com.collokia.ml.rdf
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.classification.DecisionTreeClassifier
-import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.classification.OneVsRest
+import org.apache.spark.ml.classification.*
 import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
+import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
@@ -55,24 +54,31 @@ public class OneVsRestInSpark() {
         val bins = 300
         val dt = DecisionTreeClassifier().setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
 
-        val lr = LogisticRegression()
-                .setMaxIter(10)
-                .setTol(1E-6)
-                .setFitIntercept(true)
+        val lr = LogisticRegression().setMaxIter(100).setTol(1E-6).setFitIntercept(true)
 
-        val oneVsRest = OneVsRest().setClassifier(dt).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
+        val nb = NaiveBayes()
+
+        val layers = intArrayOf(2000, 3000, 1000, 11)
+
+        val perceptron = MultilayerPerceptronClassifier()
+                .setLayers(layers)
+                .setBlockSize(128)
+                .setSeed(1234L)
+                .setMaxIter(100).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
+
+        //perceptron.fit(train)
+
+        val oneVsRest = OneVsRest().setClassifier(lr).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
         train.show(3)
         val ovrModel = oneVsRest.fit(train)
+        //val ovrModel = perceptron.fit(train)
 
         if (deleteIfExists(OVR_MODEL)) {
             ovrModel.save(OVR_MODEL)
         }
 
         // Convert indexed labels back to original labels.
-        val labelConverter = IndexToString()
-                .setInputCol("prediction")
-                .setOutputCol("predictedLabel")
-                .setLabels(indexer.labels())
+        val labelConverter = IndexToString().setInputCol("prediction").setOutputCol("predictedLabel").setLabels(indexer.labels())
 
 
         val predicatePipeline = Pipeline().setStages(arrayOf(ovrModel, labelConverter))
@@ -80,7 +86,6 @@ public class OneVsRestInSpark() {
         //val predictions = ovrModel.transform(test)
 
         val predictions = predicatePipeline.fit(test).transform(test)
-
 
         predictions.show(3)
         // evaluate the model
@@ -97,6 +102,8 @@ public class OneVsRestInSpark() {
         val fprs = (0..indexer.labels().size - 1).map({ p -> Tuple2(indexer.labels()[p], metrics.fMeasure(p.toDouble())) })
 
         println(printMatrix(confusionMatrix, indexer.labels().toList()))
+        println("TP:\t${metrics.weightedTruePositiveRate()}")
+        println("accuracy:\t${metrics.accuracy()}")
 
         println(fprs.joinToString("\n"))
     }
