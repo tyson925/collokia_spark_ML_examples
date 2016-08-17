@@ -4,6 +4,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.*
+import org.apache.spark.ml.feature.CountVectorizer
+import org.apache.spark.ml.feature.CountVectorizerModel
 import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
 import org.apache.spark.mllib.classification.SVMWithSGD
@@ -36,6 +38,9 @@ public class OneVsRestInSpark() {
         val vtmDataPipeline = documentClassification.constructVTMPipeline(sparkSession)
 
         val vtmPiplineModel = vtmDataPipeline.fit(parsedCorpus)
+        val cvModel = vtmPiplineModel.stages()[3] as CountVectorizerModel
+
+        println("cv model vocabulary: " + cvModel.vocabulary().toList())
         val indexer = vtmPiplineModel.stages()[0] as StringIndexerModel
         if (deleteIfExists(LABELS)) {
             indexer.save(LABELS)
@@ -53,8 +58,9 @@ public class OneVsRestInSpark() {
         val depth = 10
         val bins = 300
         val dt = DecisionTreeClassifier().setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
+        //dt.maxMemoryInMB = 512
 
-        val lr = LogisticRegression().setMaxIter(100).setTol(1E-6).setFitIntercept(true)
+        val lr = LogisticRegression().setMaxIter(300).setTol(1E-6).setFitIntercept(true)
 
         val nb = NaiveBayes()
 
@@ -68,7 +74,7 @@ public class OneVsRestInSpark() {
 
         //perceptron.fit(train)
 
-        val oneVsRest = OneVsRest().setClassifier(lr).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
+        val oneVsRest = OneVsRest().setClassifier(nb).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
         train.show(3)
         val ovrModel = oneVsRest.fit(train)
         //val ovrModel = perceptron.fit(train)
@@ -89,8 +95,9 @@ public class OneVsRestInSpark() {
 
         predictions.show(3)
         // evaluate the model
-        val predictionsAndLabels = predictions.select("prediction", DocumentClassification.labelIndexCol).toJavaRDD().map({ row -> Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any) })
-
+        val predictionsAndLabels = predictions.select("prediction", DocumentClassification.labelIndexCol).toJavaRDD().map({ row ->
+            Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any)
+        })
 
         val metrics = MulticlassMetrics(predictionsAndLabels.rdd())
         val confusionMatrix = metrics.confusionMatrix()

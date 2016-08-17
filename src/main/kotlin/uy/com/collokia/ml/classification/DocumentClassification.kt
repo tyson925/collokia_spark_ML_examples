@@ -53,10 +53,10 @@ public class DocumentClassification() : Serializable {
     }
 
     public fun readDzoneFromEs(sparkSession: SparkSession,jsc: JavaSparkContext) : Dataset<DocumentRow> {
-        val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/Article").map { line ->
+        val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").map { line ->
             val (id, map) = line
             val category = map.getOrElse("category") { "other" } as String
-            val content = map.getOrElse("content") { "other" } as String
+            val content = map.getOrElse("lemmas") { "other" } as String
             val title = map.getOrElse("title") { "other" } as String
             val taggedTitle = title.split(Regex("W")).map { titleToken ->
                 "title:${titleToken}"
@@ -65,7 +65,7 @@ public class DocumentClassification() : Serializable {
             val taggedLabels = labels.map { label ->
                 "label:${label}"
             }.joinToString(" ")
-            DocumentRow(category, content + "\n" + taggedTitle + "\n")
+            DocumentRow(category, content + "\n" + taggedTitle + "\n" + taggedLabels)
         }
         return documentRddToDF(sparkSession,corpusRow)
     }
@@ -267,20 +267,26 @@ public class DocumentClassification() : Serializable {
 
         //val coreNLP = CoreNLP(sparkSession, "pos, lemma").setInputCol(DocumentRow::content.name)
 
-        val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
-
-        val ngram = NGram().setInputCol(remover.outputCol).setOutputCol("ngrams").setN(4)
+        val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords").setStopWords(StopWordsRemover.loadDefaultStopWords("english"))
+        println(StopWordsRemover.loadDefaultStopWords("english").toList())
+        //val ngram = NGram().setInputCol(remover.outputCol).setOutputCol("ngrams").setN(3)
 
         //val cvModel = CountVectorizer().setInputCol(ngram.outputCol).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(2.0)
-        val cvModel = CountVectorizer().setInputCol(remover.outputCol).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(2.0)
+        val cvModel = CountVectorizer().setInputCol(remover.outputCol).setOutputCol("tfFeatures").setVocabSize(2000).setMinDF(3.0)
+        //val cvModel = CountVectorizer().setInputCol(remover.outputCol).setOutputCol(featureCol).setVocabSize(1000).setMinDF(3.0)
 
         val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
         val normalizer = Normalizer().setInputCol(idf.outputCol).setOutputCol(featureCol).setP(1.0)
+        val scaler = StandardScaler()
+                .setInputCol(cvModel.outputCol)
+                .setOutputCol(featureCol)
+                .setWithStd(true)
+                .setWithMean(false)
         //val normalizer = Normalizer().setInputCol(cvModel.outputCol).setOutputCol(featureCol).setP(1.0)
 
         //val pipeline = Pipeline().setStages(arrayOf(indexer,coreNLP, remover,ngram, cvModel, idf, normalizer))
-        val pipeline = Pipeline().setStages(arrayOf(indexer,tokenizer, remover,cvModel, idf,normalizer))
+        val pipeline = Pipeline().setStages(arrayOf(indexer,tokenizer, remover,cvModel,scaler))
 
         return pipeline
     }
@@ -375,7 +381,7 @@ public class DocumentClassification() : Serializable {
             val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
 
-            val test = JavaEsSpark.esRDD(jsc, "dzone_data/Article").mapToPair { line ->
+            val test = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").mapToPair { line ->
                 Tuple2(line._2["category"], 1)
             }.groupByKey()
             println(test.take(11).joinToString("\n"))
