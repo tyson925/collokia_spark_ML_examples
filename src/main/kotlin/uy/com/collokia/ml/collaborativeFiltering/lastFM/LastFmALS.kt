@@ -1,3 +1,4 @@
+@file:Suppress("UNUSED_VARIABLE")
 
 package uy.com.collokia.ml.collaborativeFiltering.lastFm
 
@@ -12,10 +13,10 @@ import org.apache.spark.mllib.recommendation.ALS
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
 import org.apache.spark.mllib.recommendation.Rating
 import scala.Tuple2
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
-import uy.com.collokia.util.formatterToTimePrint
-import uy.com.collokia.util.measureTimeInMillis
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.formatterToTimePrint
+import uy.com.collokia.common.utils.measureTimeInMillis
 import java.util.*
 
 

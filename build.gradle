@@ -57,6 +57,8 @@ dependencies {
     }
 
     compile project(path: ':collokia-stanford-CoreNLP')
+    compile project(path: ':collokia-common-util')
+
     compile "joda-time:joda-time:$version_jodatime"
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson"
     compile "com.fasterxml.jackson.core:jackson-core:$version_jackson"
@@ -64,12 +66,6 @@ dependencies {
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:$version_jackson_kotlin"
     compile "com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"
 
-    configurations.all {
-        resolutionStrategy {
-            force "com.fasterxml.jackson.core:jackson-databind:$version_jackson","com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson","com.fasterxml.jackson.core:jackson-core:$version_jackson","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"
-            forcedModules = ["com.fasterxml.jackson.core:jackson-databind:$version_jackson","com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson","com.fasterxml.jackson.core:jackson-core:$version_jackson","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-kotlin:${version_jackson_kotlin}","com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"]
-        }
-    }
 }
 
 
@@ -104,10 +100,10 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.8'
 }
 
-repositories {
+/*repositories {
     mavenCentral()
     jcenter()
-}
+}*/
 
 sourceSets {
     main.java.srcDirs += 'src/main/kotlin'

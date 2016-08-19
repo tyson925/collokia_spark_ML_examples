@@ -3,14 +3,13 @@ package uy.com.collokia.ml.logreg
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.mllib.classification.LogisticRegressionModel
 import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS
-import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
-import uy.com.collokia.ml.util.evaulateAndPrintPrediction
-import uy.com.collokia.ml.util.predicateLogReg
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
 
 public class LogisticRegressionInSpark(){
 
@@ -28,6 +27,7 @@ public class LogisticRegressionInSpark(){
 
     public fun evaulateSimpleLogReg(trainData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
+        //measureTimeInMillis {  }
         // Building the model
         val numIterations = 100
         val stepSize = 0.00000001
@@ -37,7 +37,7 @@ public class LogisticRegressionInSpark(){
         trainData.unpersist()
 
         println("evaulate logistic regression model...")
-        val testPrediction = predicateLogReg(model, testData)
+        val testPrediction = predicateMLModel(model, testData)
 
         return evaulateAndPrintPrediction(numClasses,testPrediction)
 

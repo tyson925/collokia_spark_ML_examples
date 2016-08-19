@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package uy.com.collokia.ml.classification.predicateModel
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -10,13 +12,13 @@ import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
 import org.apache.spark.sql.SparkSession
 import org.slf4j.LoggerFactory
+import uy.com.collokia.common.utils.formatterToTimePrint
+import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.DocumentRow
 import uy.com.collokia.ml.classification.VTM_PIPELINE
 import uy.com.collokia.ml.rdf.LABELS
 import uy.com.collokia.ml.rdf.OVR_MODEL
-import uy.com.collokia.util.formatterToTimePrint
-import uy.com.collokia.util.measureTimeInMillis
 import java.io.File
 import java.io.Serializable
 import java.util.*

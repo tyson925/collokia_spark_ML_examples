@@ -16,18 +16,17 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
 import scala.Tuple2
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.formatterToTimePrint
+import uy.com.collokia.common.utils.machineLearning.convertLabeledPointToArff
+import uy.com.collokia.common.utils.machineLearning.saveArff
+import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.rdf.RandomForestInSpark
 import uy.com.collokia.ml.svm.SVMSpark
-import uy.com.collokia.ml.util.REUTERS_DATA
-import uy.com.collokia.ml.util.convertLabeledPointToArff
-import uy.com.collokia.ml.util.saveArff
-import uy.com.collokia.stanford.coreNLP.CoreNLP
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
-import uy.com.collokia.util.formatterToTimePrint
-import uy.com.collokia.util.measureTimeInMillis
+import uy.com.collokia.util.REUTERS_DATA
 import java.io.File
 import java.io.Serializable
 
@@ -41,6 +40,7 @@ public data class ClassifierResults(val category: String, val decisiontTree: Dou
 
 public val VTM_PIPELINE = "./data/model/vtmPipeLine"
 
+@Suppress("UNUSED_VARIABLE")
 public class DocumentClassification() : Serializable {
 
     companion object {

@@ -1,11 +1,11 @@
 package uy.com.collokia.ml.classification.weka
 
-import uy.com.collokia.ml.util.loadArff
+import uy.com.collokia.common.utils.machineLearning.loadArff
 import weka.classifiers.evaluation.Evaluation
 import weka.classifiers.trees.J48
 import weka.core.Instances
-import java.util.*
 import java.io.File
+import java.util.*
 
 
 public class WekaClassification() {
@@ -14,9 +14,7 @@ public class WekaClassification() {
 
         val classifier = J48()
 
-        val model = classifier.buildClassifier(data)
-
-        model
+        //val model = classifier.buildClassifier(data)
 
         data.setClassIndex(0)
         val evaulation = Evaluation(data)

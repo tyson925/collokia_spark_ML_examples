@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package uy.com.collokia.ml.rdf
 
 import org.apache.spark.SparkConf
@@ -10,14 +12,14 @@ import org.apache.spark.mllib.tree.model.RandomForestModel
 import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.formatterToTimePrint
+import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.predicateRandomForest
+import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.util.evaulateAndPrintPrediction
-import uy.com.collokia.ml.util.predicateRandomForest
 import uy.com.collokia.scala.ClassTagger
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
-import uy.com.collokia.util.formatterToTimePrint
-import uy.com.collokia.util.measureTimeInMillis
 
 
 public class RandomForestInSpark(){
@@ -118,15 +120,7 @@ public class RandomForestInSpark(){
             val docClass = DocumentClassification()
             //val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
             //evaulate10Fold(parsedCorpus)
-
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
-
-
-}
-
-
-fun main(args: Array<String>) {
-
 }

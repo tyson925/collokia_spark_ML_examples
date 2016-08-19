@@ -1,19 +1,15 @@
 package uy.com.collokia.ml.svm
 
 import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS
 import org.apache.spark.mllib.classification.SVMModel
 import org.apache.spark.mllib.classification.SVMWithSGD
-
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
-import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
-import scala.Tuple2
-import uy.com.collokia.ml.util.*
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
 import java.io.Serializable
 
 public class SVMSpark() : Serializable {
@@ -47,7 +43,7 @@ public class SVMSpark() : Serializable {
 
         println("evaulate decision tree model...")
 
-        val testPrediction = predicateSVM(model, cvData)
+        val testPrediction = predicateMLModel(model, cvData)
         val FMeasure = evaulateAndPrintPrediction(numClasses,testPrediction)
 
 /*// Clear the default threshold.

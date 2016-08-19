@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package uy.com.collokia.ml.kMeans
 
 import org.apache.log4j.BasicConfigurator
@@ -11,8 +13,8 @@ import org.apache.spark.mllib.clustering.KMeansModel
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.mllib.linalg.Vectors
 import scala.Tuple2
-import uy.com.collokia.util.component1
-import uy.com.collokia.util.component2
+import uy.com.collokia.common.utils.component1
+import uy.com.collokia.common.utils.component2
 import java.io.Serializable
 
 

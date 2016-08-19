@@ -1,24 +1,24 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package uy.com.collokia.ml.rdf
 
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.*
-import org.apache.spark.ml.feature.CountVectorizer
 import org.apache.spark.ml.feature.CountVectorizerModel
 import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
-import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
+import uy.com.collokia.common.utils.deleteIfExists
+import uy.com.collokia.common.utils.formatterToTimePrint
+import uy.com.collokia.common.utils.machineLearning.printMatrix
+import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.VTM_PIPELINE
-import uy.com.collokia.ml.util.REUTERS_DATA
-import uy.com.collokia.ml.util.deleteIfExists
-import uy.com.collokia.ml.util.printMatrix
-import uy.com.collokia.util.formatterToTimePrint
-import uy.com.collokia.util.measureTimeInMillis
+import uy.com.collokia.util.REUTERS_DATA
 
 public val OVR_MODEL = "./data/model/ovrDectisonTree"
 public val LABELS = "./data/model/labelIndexer"
