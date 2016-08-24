@@ -373,7 +373,7 @@ public class DocumentClassification() : Serializable {
     public fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
-                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false")
+                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false").set("es.nodes.wan.only","true")
 
             val jsc = JavaSparkContext(sparkConf)
 

@@ -57,7 +57,8 @@ dependencies {
     }
 
     compile project(path: ':collokia-stanford-CoreNLP')
-    compile project(path: ':collokia-common-util')
+    //compile project(path: ':collokia-common-util')
+    compile "com.collokia:collokia-common-util:1.0-SNAPSHOT"
 
     compile "joda-time:joda-time:$version_jodatime"
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$version_jackson"
