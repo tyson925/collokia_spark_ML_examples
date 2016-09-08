@@ -14,14 +14,12 @@ import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
-import org.elasticsearch.spark.rdd.api.java.JavaEsSpark
 import scala.Tuple2
-import uy.com.collokia.common.utils.component1
-import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.convertLabeledPointToArff
 import uy.com.collokia.common.utils.machineLearning.saveArff
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.ml.classification.readData.readDzoneFromEs
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.rdf.RandomForestInSpark
@@ -36,7 +34,8 @@ public data class ReutersDocument(val title: String?, var body: String?, val dat
 //required "var" according to `Encoders.bean`
 public data class DocumentRow(var category: String, var content: String) : Serializable
 
-public data class ClassifierResults(val category: String, val decisiontTree: Double, val randomForest: Double, val svm: Double, val logReg: Double) : Serializable
+public data class ClassifierResults(val category: String, val decisiontTree: Double, val randomForest: Double, val svm: Double,
+                                    val logReg: Double) : Serializable
 
 public val VTM_PIPELINE = "./data/model/vtmPipeLine"
 
@@ -49,26 +48,8 @@ public class DocumentClassification() : Serializable {
         //val topCategories = listOf("earn", "acq")
         public val featureCol = "normIdfFeatures"
         public val labelIndexCol = "categoryIndex"
-
     }
 
-    public fun readDzoneFromEs(sparkSession: SparkSession,jsc: JavaSparkContext) : Dataset<DocumentRow> {
-        val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").map { line ->
-            val (id, map) = line
-            val category = map.getOrElse("category") { "other" } as String
-            val content = map.getOrElse("lemmas") { "other" } as String
-            val title = map.getOrElse("title") { "other" } as String
-            val taggedTitle = title.split(Regex("W")).map { titleToken ->
-                "title:${titleToken}"
-            }.joinToString(" ")
-            val labels = map.getOrElse("labels") { listOf<String>() } as List<String>
-            val taggedLabels = labels.map { label ->
-                "label:${label}"
-            }.joinToString(" ")
-            DocumentRow(category, content + "\n" + taggedTitle + "\n" + taggedLabels)
-        }
-        return documentRddToDF(sparkSession,corpusRow)
-    }
 
     public fun parseCorpus(sparkSession: SparkSession, corpusInRaw: JavaRDD<String>, subTopic: String?): Dataset<DocumentRow> {
 
@@ -373,20 +354,19 @@ public class DocumentClassification() : Serializable {
     public fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
-                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false").set("es.nodes.wan.only","true")
+                    .set("es.nodes", "localhost").set("es.port", "9200").set("es.nodes.discovery", "false").set("es.nodes.wan.only","true")
 
             val jsc = JavaSparkContext(sparkConf)
-
 
             val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
 
 
-            val test = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").mapToPair { line ->
+            /*val test = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").mapToPair { line ->
                 Tuple2(line._2["category"], 1)
             }.groupByKey()
-            println(test.take(11).joinToString("\n"))
-            //val test = sparkSession.read().format("org.elasticsearch.spark.sql").option(
-            //        "es.field.read.as.array.exclude","labels").load("dzone_data/Article")
+            println(test.take(11).joinToString("\n"))*/
+            val test = readDzoneFromEs(sparkSession,jsc)
+            //val test = sparkSession.read().format("org.elasticsearch.spark.sql").option("es.field.read.as.array.exclude","labels").load("dzone_data/DocumentRow")
 // inspect the data
             println(test.count())
 
@@ -397,7 +377,7 @@ public class DocumentClassification() : Serializable {
             //tenFoldReutersDataEvaulationWithClassifiers(jsc)
             //val dt = DecisionTreeInSpark()
             //dt.evaulateSimpleForest(testData)
-            //dt.evaluate(trainData, testData, testData, 10)
+            //dt.evaulate10FoldDF(trainData, testData, testData, 10)
             //println(dt.classProbabilities(trainData).joinToString("\n"))
             //dt.buildDecisionTreeModel(trainData,testData,10)
         }

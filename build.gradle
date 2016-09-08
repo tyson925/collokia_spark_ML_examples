@@ -43,18 +43,8 @@ dependencies {
     compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
     compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
 
-    compile ("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR"){
-
-        exclude group: "cascading"
-        exclude group: "org.apache.pig"
-        exclude group: "org.apache.storm"
-    }
-
-    testCompile("org.elasticsearch:elasticsearch-hadoop:$versionElasticSearchMR") {
-        exclude group: "cascading"
-        exclude group: "org.apache.pig"
-        exclude group: "org.apache.storm"
-    }
+    compile "org.elasticsearch:elasticsearch-spark-20_2.10:$versionElasticSearchMR"
+    //compile "org.elasticsearch:elasticsearch-spark-20:5.0.0.BUILD.SNAPSHOT-collokia"
 
     compile project(path: ':collokia-stanford-CoreNLP')
     //compile project(path: ':collokia-common-util')
