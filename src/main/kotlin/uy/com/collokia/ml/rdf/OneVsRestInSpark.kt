@@ -13,13 +13,14 @@ import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.common.utils.deleteIfExists
+import uy.com.collokia.common.utils.elasticSearch.readSoContenFromEs
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.printMatrix
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.convertRDDToDF
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.VTM_PIPELINE
 import uy.com.collokia.ml.classification.readData.readDzoneFromEs
-import uy.com.collokia.util.REUTERS_DATA
 
 public val OVR_MODEL = "./data/model/ovrDectisonTree"
 public val LABELS = "./data/model/labelIndexer"
@@ -35,8 +36,11 @@ public class OneVsRestInSpark() {
         val documentClassification = DocumentClassification()
         //val parsedCorpus = documentClassification.parseCorpus(sparkSession, corpusInRaw, null)
         val parsedCorpus = readDzoneFromEs(sparkSession, jsc)
+        //val parsedCorpus = readSoContenFromEs(jsc, "dzone_data/SOThreadExtractValues").convertRDDToDF(sparkSession)
 
         val vtmDataPipeline = documentClassification.constructVTMPipeline(sparkSession)
+
+        println(parsedCorpus.count())
 
         val vtmPipelineModel = vtmDataPipeline.fit(parsedCorpus)
         val cvModel = vtmPipelineModel.stages()[3] as CountVectorizerModel

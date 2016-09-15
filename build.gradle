@@ -3,12 +3,17 @@ version '1.0-SNAPSHOT'
 description 'collokia-spark machine learning examples'
 
 buildscript {
-    ext.kotlin_version = '1.0.1'
+    ext.kotlin_version = '1.0.3'
     repositories {
-        jcenter()
         maven {
-            url 'http://repo.spring.io/plugins-release'
+            url "https://collokia.artifactoryonline.com/collokia/collokia-internal"
+            credentials {
+                username "${collokiaRepoUser}"
+                password "${collokiaRepoPass}"
+            }
         }
+
+        jcenter()
         mavenCentral()
         maven {
             url 'http://dl.bintray.com/kotlin/kotlin-eap'
@@ -19,12 +24,16 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        classpath "com.collokia:kluster-gradle-plugin:0.2.1.4"
     }
 }
 
 apply plugin: 'kotlin'
 apply plugin: 'java'
 apply plugin: 'idea'
+apply plugin: 'kluster'
+
+mainClassName = 'uy.com.collokia.runSparkOnEMR.jobs.TestJob'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -37,16 +46,15 @@ dependencies {
     //compile "edu.stanford.nlp:stanford-corenlp:${corenlpVersion}:models"
     compile "info.bliki.wiki:bliki-core:3.0.19"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "org.apache.spark:spark-mllib_2.10:${version_Spark}"
-    compile "org.apache.spark:spark-sql_2.10:${version_Spark}"
-    compile "org.apache.spark:spark-core_2.10:${version_Spark}"
-    compile "org.apache.spark:spark-streaming_2.10:${version_Spark}"
+    compile "org.apache.spark:spark-mllib_${scalaVersion}:${version_Spark}"
+    compile "org.apache.spark:spark-sql_${scalaVersion}:${version_Spark}"
+    compile "org.apache.spark:spark-core_${scalaVersion}:${version_Spark}"
+    compile "org.apache.spark:spark-streaming_${scalaVersion}:${version_Spark}"
     compile "org.elasticsearch:elasticsearch:$versionElasticSearch"
 
-    compile "org.elasticsearch:elasticsearch-spark-20_2.10:$versionElasticSearchMR"
-    //compile "org.elasticsearch:elasticsearch-spark-20:5.0.0.BUILD.SNAPSHOT-collokia"
+    compile "org.elasticsearch:elasticsearch-spark-20_${scalaVersion}:$versionElasticSearchMR"
 
-    compile project(path: ':collokia-stanford-CoreNLP')
+    //compile project(path: ':collokia-stanford-CoreNLP')
     //compile project(path: ':collokia-common-util')
     compile "com.collokia:collokia-common-util:1.0-SNAPSHOT"
 
@@ -55,7 +63,7 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-core:$version_jackson"
     compile "com.fasterxml.jackson.core:jackson-databind:$version_jackson"
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:$version_jackson_kotlin"
-    compile "com.fasterxml.jackson.module:jackson-module-scala_2.10:$version_jackson_scala"
+    compile "com.fasterxml.jackson.module:jackson-module-scala_${scalaVersion}:$version_jackson_scala"
 
 }
 

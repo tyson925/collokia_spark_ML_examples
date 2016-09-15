@@ -1,8 +1,8 @@
 package uy.com.collokia.ml.lsa
 
-import edu.stanford.nlp.ling.CoreAnnotations
-import edu.stanford.nlp.pipeline.Annotation
-import edu.stanford.nlp.pipeline.StanfordCoreNLP
+//import edu.stanford.nlp.ling.CoreAnnotations
+//import edu.stanford.nlp.pipeline.Annotation
+//import edu.stanford.nlp.pipeline.StanfordCoreNLP
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.LongWritable
 import org.apache.hadoop.io.Text
@@ -42,7 +42,7 @@ public fun readFile(path: String, jsc: JavaSparkContext): JavaRDD<String> {
     return rawXmls.map({p -> p._2.toString()})
 }
 
-public fun createNLPPipeline(): StanfordCoreNLP {
+/*public fun createNLPPipeline(): StanfordCoreNLP {
     val props = Properties()
     props.put("annotators", "tokenize, ssplit, pos, lemma")
     return StanfordCoreNLP(props)
@@ -60,7 +60,7 @@ public fun plainTextToLemmas(text: String, stopWords: Set<String>, pipeline: Sta
     }.filter { lemma -> lemma.length > 2 && !stopWords.contains(lemma) && isOnlyLetters(lemma) }
 
     return lemmas
-}
+}*/
 
 public fun isOnlyLetters(str: String): Boolean {
     // While loop for high performance

@@ -11,7 +11,7 @@ import uy.com.collokia.ml.classification.DocumentRow
 
 public fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : Dataset<DocumentRow> {
 
-    val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/DocumentRow").map { line ->
+    val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/SOThreadExtractValues").map { line ->
         val (id, map) = line
         val category = map.getOrElse("category") { "other" } as String
         val content = map.getOrElse("lemmas") { "other" } as String
