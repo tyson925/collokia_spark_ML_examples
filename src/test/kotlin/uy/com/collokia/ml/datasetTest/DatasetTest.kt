@@ -4,15 +4,14 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.feature.*
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions
 import uy.com.collokia.common.utils.deleteIfExists
-import uy.com.collokia.common.utils.elasticSearch.runOnSparkTest
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.DocumentClassification
-import java.io.Serializable
 import uy.com.collokia.ml.classification.DocumentRow
 import uy.com.collokia.ml.rdf.LABELS
+import java.io.Serializable
+
 
 class DatasetTest() : Serializable {
 
@@ -33,10 +32,13 @@ class DatasetTest() : Serializable {
         ), DocumentRow::class.java).toDF("category", "content", "labels","title")
 
 
+        //val ngrams = OwnNGram().setInputCol("content").setOutputCol("ngrams")
+
+        //ngrams.transform(corpus).show(3,false)
 
         //corpus.select(functions.regexp_replace(functions.split(corpus.col("content")," ")," ","_")).show(3,false)
-        corpus.select(functions.array("content","title")).show(3,false)
-        corpus.select(corpus.col("*"), functions.split(functions.concat_ws(" ",corpus.col("content"),corpus.col("title"))," ").`as`("content")).show(3,false)
+        //corpus.select(functions.array("content","title")).show(3,false)
+        //corpus.select(corpus.col("*"), functions.split(functions.concat_ws(" ",corpus.col("content"),corpus.col("title"))," ").`as`("content")).show(3,false)
 
         val vtmDataPipeline = documentClassification.constructVTMPipeline(stopwords.value)
 

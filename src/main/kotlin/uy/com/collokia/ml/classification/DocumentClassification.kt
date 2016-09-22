@@ -262,7 +262,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setStopWords(stopwordsApplied)
                 .setCaseSensitive(false)
 
-        val ngram = OwnNGram().setInputCol("filteredWords").setOutputCol("ngrams")
+        val ngram = OwnNGram().setInputCol(remover.outputCol).setOutputCol("ngrams")
 
         //val concatWs = ConcatWSTransformer().setInputCols(arrayOf(remover.outputCol, ngram.outputCol)).setOutputCol("bigrams")
 
