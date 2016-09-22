@@ -42,7 +42,7 @@ data class EvaluationMetrics(val category: String, val fMeasure: Double, val pre
 
 class OneVsRestInSpark() {
 
-    companion object{
+    companion object {
         val formatter = DecimalFormat("#0.00")
     }
 
@@ -67,7 +67,7 @@ class OneVsRestInSpark() {
         val vtmPipelineModel = vtmDataPipeline.fit(corpus)
 
 
-        val cvModel = vtmPipelineModel.stages()[3] as CountVectorizerModel
+        val cvModel = vtmPipelineModel.stages()[4] as CountVectorizerModel
 
         println("cv model vocabulary: " + cvModel.vocabulary().toList())
         val indexer = vtmPipelineModel.stages()[0] as StringIndexerModel
@@ -75,13 +75,13 @@ class OneVsRestInSpark() {
             indexer.save(LABELS)
         }
 
-        val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords", "tfFeatures")
+        val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords","ngrams", "tfFeatures")
 
         val vtmTitlePipeline = documentClassification.constructTitleVtmDataPipeline(stopwords.value)
 
         val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
 
-        val parsedCorpusTitle = vtmTitlePipelineModel.transform(parsedCorpus).drop("title_words", "filtered_titleWords", "tf_titleFeatures")
+        val parsedCorpusTitle = vtmTitlePipelineModel.transform(parsedCorpus).drop("title_words", "filtered_titleWords","title_ngrams", "tf_titleFeatures")
 
         parsedCorpusTitle.show(10, false)
 
@@ -170,7 +170,7 @@ class OneVsRestInSpark() {
                 "Precision:\t${formatter.format(metrics.weightedPrecision() * 100)}\t" +
                 "Recall:\t${formatter.format(metrics.weightedRecall() * 100)}\t" +
                 "TP:\t${formatter.format(metrics.weightedTruePositiveRate() * 100)}\n" +
-                "Accuracy:\t${formatter.format(metrics.accuracy() *100)}")
+                "Accuracy:\t${formatter.format(metrics.accuracy() * 100)}")
 
 
         println(fprs.joinToString("\n"))

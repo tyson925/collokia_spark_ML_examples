@@ -20,7 +20,6 @@ import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.convertLabeledPointToArff
 import uy.com.collokia.common.utils.machineLearning.saveArff
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.readData.readDzoneFromEs
 import uy.com.collokia.ml.logreg.LogisticRegressionInSpark
 import uy.com.collokia.ml.rdf.DecisionTreeInSpark
 import uy.com.collokia.ml.rdf.RandomForestInSpark
@@ -28,15 +27,16 @@ import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.util.REUTERS_DATA
 import java.io.File
 import java.io.Serializable
+import uy.com.collokia.ml.classification.nlp.OwnNGram
 
 data class ReutersDocument(val title: String?, var body: String?, val date: String,
-                                  val topics: List<String>?, val places: List<String>?, val organisations: List<String>?, val id: Int) : Serializable
+                           val topics: List<String>?, val places: List<String>?, val organisations: List<String>?, val id: Int) : Serializable
 
 //required "var" according to `Encoders.bean`
-data class DocumentRow(var category: String, var content: String, var title : String, var labels : String) : Serializable
+data class DocumentRow(var category: String, var content: String, var title: String, var labels: String) : Serializable
 
 data class ClassifierResults(val category: String, val decisiontTree: Double, val randomForest: Double, val svm: Double,
-                                    val logReg: Double) : Serializable
+                             val logReg: Double) : Serializable
 
 val VTM_PIPELINE = "./data/model/vtmPipeLine"
 
@@ -62,7 +62,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
         return documentRddToDF(sparkSession, corpusRow)
     }
 
-    fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>) : Dataset<DocumentRow> {
+    fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>): Dataset<DocumentRow> {
         println("corpus size: " + corpusRow.count())
 
         val reutersEncoder = Encoders.bean(DocumentRow::class.java)
@@ -81,9 +81,9 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
             val content = doc.body + (doc.title ?: "")
 
             val row = if (topics.contains(category)) {
-                DocumentRow(category, content,"","")
+                DocumentRow(category, content, "", "")
             } else {
-                DocumentRow("other", content,"","")
+                DocumentRow("other", content, "", "")
             }
             row
         }
@@ -99,9 +99,9 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
             val intersectCategory = topics.intersect(topCategories)
             intersectCategory.first()
             val rows = intersectCategory.map { category ->
-                DocumentRow(category, content,"","")
+                DocumentRow(category, content, "", "")
             }.iterator()
-            DocumentRow(intersectCategory.first(), content,"","")
+            DocumentRow(intersectCategory.first(), content, "", "")
             //rows
         }
         return corpusRow
@@ -241,7 +241,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
         println(results)
     }
 
-    fun constructVTMPipeline(stopwords : Array<String>): Pipeline {
+    fun constructVTMPipeline(stopwords: Array<String>): Pipeline {
         val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
         val tokenizer = RegexTokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
@@ -262,13 +262,15 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setStopWords(stopwordsApplied)
                 .setCaseSensitive(false)
 
-        val ngram = NGram().setInputCol(remover.outputCol).setOutputCol("ngrams").setN(3)
+        val ngram = OwnNGram().setInputCol("filteredWords").setOutputCol("ngrams")
+
+        //val concatWs = ConcatWSTransformer().setInputCols(arrayOf(remover.outputCol, ngram.outputCol)).setOutputCol("bigrams")
 
         val cvModel = CountVectorizer().setInputCol(ngram.outputCol)
                 .setOutputCol("tfFeatures")
-                .setVocabSize(2000)
-                .setMinDF(3.0)
-        //val cvModel = CountVectorizer().setInputCol(remover.outputCol).setOutputCol(featureCol).setVocabSize(2000).setMinDF(2.0)
+                .setVocabSize(3000)
+                .setMinDF(1.0)
+        //val cvModel = CountVectorizer().setInputCol(remover.setOutputCol).setOutputCol(featureCol).setVocabSize(2000).setMinDF(2.0)
 
         val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
@@ -278,16 +280,13 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setOutputCol("content_features")
                 .setWithStd(true)
                 .setWithMean(false)
-        //val normalizer = Normalizer().setInputCol(cvModel.outputCol).setOutputCol(featureCol).setP(1.0)
 
-        //val pipeline = Pipeline().setStages(arrayOf(indexer,coreNLP, remover,ngram, cvModel, idf, normalizer))
-
-        val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover,ngram, cvModel, scaler))
+        val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngram, cvModel, scaler))
 
         return pipeline
     }
 
-    fun constructTitleVtmDataPipeline(stopwords : Array<String>): Pipeline {
+    fun constructTitleVtmDataPipeline(stopwords: Array<String>): Pipeline {
 
         val stopwordsApplied = if (stopwords.size == 0) {
             println("Load default english stopwords...")
@@ -308,7 +307,9 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setStopWords(stopwordsApplied)
                 .setCaseSensitive(false)
 
-        val ngram = NGram().setInputCol(titleRemover.outputCol).setOutputCol("title_ngrams").setN(3)
+        val ngram = OwnNGram().setInputCol(titleRemover.outputCol).setOutputCol("title_ngrams")
+
+        //val concatWs = ConcatWSTransformer().setInputCols(arrayOf(titleRemover.outputCol, ngram.outputCol)).setOutputCol("title_bigrams")
 
         val titleCVModel = CountVectorizer().setInputCol(ngram.outputCol)
                 .setOutputCol("tf_titleFeatures")
@@ -319,7 +320,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setOutputCol("title_features")
                 .setP(2.0)
 
-        val pipeline = Pipeline().setStages(arrayOf(titleTokenizer,titleRemover,ngram,titleCVModel,titleNormalizer))
+        val pipeline = Pipeline().setStages(arrayOf(titleTokenizer, titleRemover, ngram, titleCVModel, titleNormalizer))
         return pipeline
     }
 
@@ -330,7 +331,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setPattern("\\w+")
                 .setGaps(false)
 
-        //val ngram = NGram().setInputCol(tagTokenizer.outputCol).setOutputCol("tag_ngrams").setN(3)
+        //val ngram = NGram().setInputCol(tagTokenizer.setOutputCol).setOutputCol("tag_ngrams").setN(3)
 
         val tagCVModel = CountVectorizer().setInputCol(tagTokenizer.outputCol)
                 .setOutputCol("tag_tfFeatures")
@@ -341,7 +342,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
                 .setOutputCol("tag_features")
                 .setP(1.0)
 
-        val pipeline = Pipeline().setStages(arrayOf(tagTokenizer,tagCVModel,tagNormalizer))
+        val pipeline = Pipeline().setStages(arrayOf(tagTokenizer, tagCVModel, tagNormalizer))
         return pipeline
 
     }
@@ -428,7 +429,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
     fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
-                    .set("es.nodes", "localhost").set("es.port", "9200").set("es.nodes.discovery", "false").set("es.nodes.wan.only","true")
+                    .set("es.nodes", "localhost").set("es.port", "9200").set("es.nodes.discovery", "false").set("es.nodes.wan.only", "true")
 
             val jsc = JavaSparkContext(sparkConf)
 
@@ -457,6 +458,7 @@ val VTM_PIPELINE = "./data/model/vtmPipeLine"
     }
 
 }
+
 
 fun main(args: Array<String>) {
 

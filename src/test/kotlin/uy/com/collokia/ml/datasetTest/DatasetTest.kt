@@ -4,6 +4,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.feature.*
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions
 import uy.com.collokia.common.utils.deleteIfExists
 import uy.com.collokia.common.utils.elasticSearch.runOnSparkTest
 import uy.com.collokia.common.utils.formatterToTimePrint
@@ -14,6 +15,8 @@ import uy.com.collokia.ml.classification.DocumentRow
 import uy.com.collokia.ml.rdf.LABELS
 
 class DatasetTest() : Serializable {
+
+
 
 
     fun datasetAssamblerTest(jsc: JavaSparkContext) {
@@ -29,6 +32,12 @@ class DatasetTest() : Serializable {
                 DocumentRow("machinelearning", "Logistic regression models are neat", "Logistic regression", "machine learning")
         ), DocumentRow::class.java).toDF("category", "content", "labels","title")
 
+
+
+        //corpus.select(functions.regexp_replace(functions.split(corpus.col("content")," ")," ","_")).show(3,false)
+        corpus.select(functions.array("content","title")).show(3,false)
+        corpus.select(corpus.col("*"), functions.split(functions.concat_ws(" ",corpus.col("content"),corpus.col("title"))," ").`as`("content")).show(3,false)
+
         val vtmDataPipeline = documentClassification.constructVTMPipeline(stopwords.value)
 
         println(corpus.count())
@@ -36,7 +45,7 @@ class DatasetTest() : Serializable {
         val vtmPipelineModel = vtmDataPipeline.fit(corpus)
 
 
-        val cvModel = vtmPipelineModel.stages()[3] as CountVectorizerModel
+        val cvModel = vtmPipelineModel.stages()[4] as CountVectorizerModel
 
         println("cv model vocabulary: " + cvModel.vocabulary().toList())
         val indexer = vtmPipelineModel.stages()[0] as StringIndexerModel

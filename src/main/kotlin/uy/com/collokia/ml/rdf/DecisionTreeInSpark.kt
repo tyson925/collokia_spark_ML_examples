@@ -48,7 +48,7 @@ public class DecisionTreeInSpark() : Serializable {
         val depth = 10
         val bins = 300
         //println("train a decision tree with classes and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
-        //val decisionTree = DecisionTreeClassifier().setFeaturesCol(normalizer.outputCol).setLabelCol(indexer.outputCol).setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
+        //val decisionTree = DecisionTreeClassifier().setFeaturesCol(normalizer.setOutputCol).setLabelCol(indexer.setOutputCol).setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
 
         val vtm = vtmPipeline.fit(data).transform(data)
 
