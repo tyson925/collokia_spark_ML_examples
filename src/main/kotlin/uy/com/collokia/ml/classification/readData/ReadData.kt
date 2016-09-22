@@ -14,16 +14,12 @@ public fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : 
     val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data/SOThreadExtractValues").map { line ->
         val (id, map) = line
         val category = map.getOrElse("category") { "other" } as String
-        val content = map.getOrElse("lemmas") { "other" } as String
+        val content = map.getOrElse("parsedContent") { "other" } as String
         val title = map.getOrElse("title") { "other" } as String
-        val taggedTitle = title.split(Regex("W")).map { titleToken ->
-            "title:${titleToken}"
-        }.joinToString(" ")
-        val labels = map.getOrElse("labels") { listOf<String>() } as List<String>
-        val taggedLabels = labels.map { label ->
-            "label:${label}"
-        }.joinToString(" ")
-        DocumentRow(category, content + "\n" + taggedTitle + "\n" + taggedLabels)
+        //val taggedTitle = title.split(Regex("W")).map { titleToken -> "title:${titleToken}"}.joinToString(" ")
+        val labels = map.getOrElse("tags") { listOf<String>() } as List<String>
+        val taggedLabels = labels.map { label -> "label:${label}" }.joinToString(" ")
+        DocumentRow(category, content, title,labels.joinToString(" "))
     }
     return corpusRow.convertRDDToDF(sparkSession)
 }

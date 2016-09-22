@@ -20,9 +20,9 @@ import uy.com.collokia.common.utils.measureTimeInMillis
 import java.util.*
 
 
-public class LastFmALS() {
+class LastFmALS() {
 
-    public fun preparation(rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
+    fun preparation(rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
         val userIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
         { row -> row.split(" ")[0].toDouble() }).stats()
         val itemIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
@@ -37,7 +37,7 @@ public class LastFmALS() {
     }
 
 
-    public fun buildArtistByID(rawArtistData: JavaRDD<String>): JavaPairRDD<Int, String> {
+    fun buildArtistByID(rawArtistData: JavaRDD<String>): JavaPairRDD<Int, String> {
         return rawArtistData.mapToPair { line ->
             val res = if (line.split("\t").size == 2) {
                 val (id, name) = line.split("\t")
@@ -57,7 +57,7 @@ public class LastFmALS() {
         }
     }
 
-    public fun buildArtistAlias(rawArtistAlias: JavaRDD<String>): Map<Int, Int> {
+    fun buildArtistAlias(rawArtistAlias: JavaRDD<String>): Map<Int, Int> {
         return rawArtistAlias.mapToPair { line ->
             val tokens = line.split('\t')
             if (tokens[0].isEmpty()) {
@@ -68,16 +68,17 @@ public class LastFmALS() {
         }.collectAsMap()
     }
 
-    public fun buildRatings(rawUserArtistData: JavaRDD<String>, bArtistAlias: Broadcast<Map<Int, Int>>): JavaRDD<Rating> {
+    fun buildRatings(rawUserArtistData: JavaRDD<String>, bArtistAlias: Broadcast<Map<Int, Int>>): JavaRDD<Rating> {
+        val bArtistAliasHashMap = HashMap<Int,Int>(bArtistAlias.value)
         return rawUserArtistData.map { line ->
             val (userID, artistID, count) = line.split(' ').map({ item -> item.toInt() })
-            val finalArtistID = bArtistAlias.value.getOrElse(artistID, { artistID })
+            val finalArtistID = bArtistAliasHashMap.getOrElse(artistID, { artistID })
             Rating(userID, finalArtistID, count.toDouble())
         }
     }
 
 
-    public fun model(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
+    fun model(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
 
         val bArtistAlias = jsc.broadcast(buildArtistAlias(rawArtistAlias))
 
@@ -116,7 +117,7 @@ public class LastFmALS() {
         unpersist(model)
     }
 
-    public fun areaUnderCurve(positiveData: JavaRDD<Rating>, bAllItemIDs: Broadcast<List<Int>>,
+    fun areaUnderCurve(positiveData: JavaRDD<Rating>, bAllItemIDs: Broadcast<List<Int>>,
                               predictFunction: (JavaPairRDD<Int, Int>) -> JavaRDD<Rating>): Double {
 
         // What this actually computes is AUC, per user. The result is actually something
@@ -189,7 +190,7 @@ public class LastFmALS() {
         }).mean() // Return mean AUC over users
     }
 
-    public fun predictMostListened(jsc: JavaSparkContext, train: JavaRDD<Rating>): JavaRDD<Rating> {
+    fun predictMostListened(jsc: JavaSparkContext, train: JavaRDD<Rating>): JavaRDD<Rating> {
         val bListenCount = jsc.broadcast(train.mapToPair({ rating -> Tuple2(rating.product(), rating.rating()) }).reduceByKey({ a, b -> a + b }).collectAsMap())
         return train.map { rating ->
             Rating(rating.user(), rating.product(), bListenCount.value.getOrElse(rating.product(), { 0.0 }))
@@ -197,7 +198,7 @@ public class LastFmALS() {
     }
 
 
-    public fun evaluate(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>,rawArtistAlias: JavaRDD<String>) {
+    fun evaluate(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>,rawArtistAlias: JavaRDD<String>) {
 
         val bArtistAlias = jsc.broadcast(buildArtistAlias(rawArtistAlias))
 
@@ -233,7 +234,7 @@ public class LastFmALS() {
 
     }
 
-    public fun recommend(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
+    fun recommend(jsc: JavaSparkContext, rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
 
         val bArtistAlias = jsc.broadcast(buildArtistAlias(rawArtistAlias))
         val allData = buildRatings(rawUserArtistData, bArtistAlias).cache()
@@ -260,7 +261,7 @@ public class LastFmALS() {
         unpersist(model)
     }
 
-    public fun unpersist(model: MatrixFactorizationModel) {
+    fun unpersist(model: MatrixFactorizationModel) {
         // At the moment, it's necessary to manually unpersist the RDDs inside the model
         // when done with it in order to make sure they are promptly uncached
         model.userFeatures().unpersist(true)
@@ -268,7 +269,7 @@ public class LastFmALS() {
     }
 
 
-    public fun run() {
+    fun run() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("LastFMRecommendation").setMaster("local[6]")
             //sparkConf.set("spark.driver.maxResultSize", "2g")

@@ -6,43 +6,45 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.*
-import org.apache.spark.ml.feature.CountVectorizerModel
-import org.apache.spark.ml.feature.IndexToString
-import org.apache.spark.ml.feature.StringIndexerModel
+import org.apache.spark.ml.feature.*
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.common.utils.deleteIfExists
-import uy.com.collokia.common.utils.elasticSearch.readSoContenFromEs
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.printMatrix
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.common.utils.rdd.convertRDDToDF
 import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.ml.classification.VTM_PIPELINE
 import uy.com.collokia.ml.classification.readData.readDzoneFromEs
 
-public val OVR_MODEL = "./data/model/ovrDectisonTree"
-public val LABELS = "./data/model/labelIndexer"
+val OVR_MODEL = "./data/model/ovrDectisonTree"
+val LABELS = "./data/model/labelIndexer"
 
-public class OneVsRestInSpark() {
+class OneVsRestInSpark() {
 
 
-    public fun evaluateOneVsRest(jsc: JavaSparkContext) {
+    fun evaluateOneVsRest(jsc: JavaSparkContext) {
         //val corpusInRaw = jsc.textFile(REUTERS_DATA).cache().repartition(8)
 
-        val sparkSession = SparkSession.builder().master("local").appName("reuters classification").getOrCreate()
+        val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
+
+        val stopwords = jsc.broadcast(jsc.textFile("./data/stopwords.txt").collect().toTypedArray())
+
+
 
         val documentClassification = DocumentClassification()
         //val parsedCorpus = documentClassification.parseCorpus(sparkSession, corpusInRaw, null)
-        val parsedCorpus = readDzoneFromEs(sparkSession, jsc)
+        val corpus = readDzoneFromEs(sparkSession, jsc)
         //val parsedCorpus = readSoContenFromEs(jsc, "dzone_data/SOThreadExtractValues").convertRDDToDF(sparkSession)
 
-        val vtmDataPipeline = documentClassification.constructVTMPipeline(sparkSession)
+        val vtmDataPipeline = documentClassification.constructVTMPipeline(stopwords.value)
 
-        println(parsedCorpus.count())
+        println(corpus.count())
 
-        val vtmPipelineModel = vtmDataPipeline.fit(parsedCorpus)
+        val vtmPipelineModel = vtmDataPipeline.fit(corpus)
+
+
         val cvModel = vtmPipelineModel.stages()[3] as CountVectorizerModel
 
         println("cv model vocabulary: " + cvModel.vocabulary().toList())
@@ -51,7 +53,32 @@ public class OneVsRestInSpark() {
             indexer.save(LABELS)
         }
 
-        val (train, test) = vtmPipelineModel.transform(parsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
+        val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content","words","filteredWords","tfFeatures")
+
+        val vtmTitlePipeline = documentClassification.constructTitleVtmDataPipeline(stopwords.value)
+
+        val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
+
+        val parsedCorpusTitle = vtmTitlePipelineModel.transform(parsedCorpus).drop("title_words","filtered_titleWords","tf_titleFeatures")
+
+        parsedCorpusTitle.show(10,false)
+
+        val vtmTagPipeline = documentClassification.constructTagVtmDataPipeline()
+
+        val vtmTagPipelineModel = vtmTagPipeline.fit(parsedCorpusTitle)
+
+        val fullParsedCorpus = vtmTagPipelineModel.transform(parsedCorpusTitle).drop("tag_words","tf_tagFeatures")
+
+        val contentScaler = vtmPipelineModel.stages().last() as StandardScalerModel
+
+        val titleNormalizer = vtmTitlePipelineModel.stages().last() as Normalizer
+
+        val tagNormalizer = vtmTitlePipelineModel.stages().last() as Normalizer
+
+        val assembler =  VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, tagNormalizer.outputCol))
+                .setOutputCol(DocumentClassification.featureCol)
+
+        val (train, test) = assembler.transform(fullParsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
         if (deleteIfExists(VTM_PIPELINE)) {
             vtmPipelineModel.save(VTM_PIPELINE)
         }
@@ -79,7 +106,7 @@ public class OneVsRestInSpark() {
 
         //perceptron.fit(train)
 
-        val oneVsRest = OneVsRest().setClassifier(dt).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
+        val oneVsRest = OneVsRest().setClassifier(lr).setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol)
         train.show(3)
         val ovrModel = oneVsRest.fit(train)
         //val ovrModel = perceptron.fit(train)
@@ -120,12 +147,12 @@ public class OneVsRestInSpark() {
         println(fprs.joinToString("\n"))
     }
 
-    public fun runOnSpark() {
+    fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
                     .set("es.nodes", "localhost:9200")
-                    .set("es.nodes.discovery", "false")
-                    .set("es.nodes.wan.only","true")
+                    .set("es.nodes.discovery", "true")
+                    .set("es.nodes.wan.only","false")
 
             val jsc = JavaSparkContext(sparkConf)
             evaluateOneVsRest(jsc)

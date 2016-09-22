@@ -46,7 +46,7 @@ public class PredicateModel() : Serializable {
         val urlContents = File("./data/urls/corpus.json").readLines().map { line ->
          val article =   MAPPER.readValue(line,Article::class.java)
             val content = article.content + "\n" + article.title
-            DocumentRow("bigData", content)
+            DocumentRow("bigData", content,"","")
         }
 
         /*val urlContentsRDD = contents.map { content ->
