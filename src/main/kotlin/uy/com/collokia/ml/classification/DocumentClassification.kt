@@ -110,7 +110,7 @@ import uy.com.collokia.ml.classification.readData.parseCorpus
 
         println("category:\t${category}")
 
-        val vtmPipeline = constructVTMPipeline(arrayOf())
+        val vtmPipeline = constructVTMPipeline(arrayOf(),2000)
         val data = vtmPipeline.fit(parsedCorpus).transform(parsedCorpus)
         data.show(3)
         return data

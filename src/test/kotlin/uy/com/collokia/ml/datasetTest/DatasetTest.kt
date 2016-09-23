@@ -37,7 +37,7 @@ class DatasetTest() : Serializable {
         //corpus.select(functions.array("content","title")).show(3,false)
         //corpus.select(corpus.col("*"), functions.split(functions.concat_ws(" ",corpus.col("content"),corpus.col("title"))," ").`as`("content")).show(3,false)
 
-        val vtmDataPipeline = constructVTMPipeline(stopwords.value)
+        val vtmDataPipeline = constructVTMPipeline(stopwords.value,2000)
 
         println(corpus.count())
 
@@ -54,7 +54,7 @@ class DatasetTest() : Serializable {
 
         val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords", "tfFeatures")
 
-        val vtmTitlePipeline = constructTitleVtmDataPipeline(stopwords.value)
+        val vtmTitlePipeline = constructTitleVtmDataPipeline(stopwords.value,500)
 
         val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
 
@@ -62,7 +62,7 @@ class DatasetTest() : Serializable {
 
         parsedCorpusTitle.show(10, false)
 
-        val vtmTagPipeline = constructTagVtmDataPipeline()
+        val vtmTagPipeline = constructTagVtmDataPipeline(200)
 
         val vtmTagPipelineModel = vtmTagPipeline.fit(parsedCorpusTitle)
 

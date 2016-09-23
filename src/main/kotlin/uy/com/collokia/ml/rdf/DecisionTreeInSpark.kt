@@ -36,11 +36,13 @@ import uy.com.collokia.ml.classification.nlp.vtm.*
 import uy.com.collokia.ml.classification.readData.parseCorpus
 
 
+data class DecisionTreeProperties(val impurity : String,val maxDepth : Int,val bins :Int) : Serializable
+
 class DecisionTreeInSpark() : Serializable {
 
     fun evaluate10FoldDF(sparkSession : SparkSession, dataInRaw: JavaRDD<String>, category : String) {
 
-        val vtmPipeline = constructVTMPipeline(arrayOf())
+        val vtmPipeline = constructVTMPipeline(arrayOf(),2000)
 
         val data = parseCorpus(sparkSession,dataInRaw,category)
         val impurity = "gini"
@@ -63,18 +65,18 @@ class DecisionTreeInSpark() : Serializable {
                 .build()
 
 
-        val evaulator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol("prediction")
+        val evaluator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol("prediction")
 
         // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
         //evaulator.set("metricName", "f1(1.0)")
-        evaulator.metricName = "f1"
+        evaluator.metricName = "f1"
 
         // We now treat the Pipeline as an Estimator, wrapping it in a CrossValidator instance.
 // This will allow us to jointly choose parameters for all Pipeline stages.
 // A CrossValidator requires an Estimator, a set of Estimator ParamMaps, and an Evaluator.
 // Note that the evaluator here is a BinaryClassificationEvaluator and its default metric
 // is areaUnderROC.
-        val cv = CrossValidator().setEstimator(pipeline).setEvaluator(evaulator).setEstimatorParamMaps(paramGrid).setNumFolds(10)
+        val cv = CrossValidator().setEstimator(pipeline).setEvaluator(evaluator).setEstimatorParamMaps(paramGrid).setNumFolds(10)
 
         // Run cross-validation, and choose the best set of parameters.
         val cvModel = cv.fit(vtm)
@@ -141,21 +143,21 @@ class DecisionTreeInSpark() : Serializable {
                         intArrayOf(40, 300).map { bins ->
                             val model = buildDecisionTreeModel(trainData, numClasses, impurity, depth, bins)
                             val metrics = MulticlassMetrics(predicateDecisionTree(model, cvData))
-                            Tuple2(Triple(impurity, depth, bins), metrics)
+                            Tuple2(DecisionTreeProperties(impurity, depth, bins), metrics)
                         }
                     }
                 }
 
-        val sortedEvaulations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
+        val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
             Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
         }
 
-        println(sortedEvaulations.joinToString("\n"))
+        println(sortedEvaluations.joinToString("\n"))
 
-        val bestTreePoperties = sortedEvaulations.first()._1
+        val bestTreePoperties = sortedEvaluations.first()._1
 
         val model = DecisionTree.trainClassifier(
-                trainData.union(cvData), numClasses, mapOf<Int, Int>(), bestTreePoperties.first, bestTreePoperties.second, bestTreePoperties.third)
+                trainData.union(cvData), numClasses, mapOf<Int, Int>(), bestTreePoperties.impurity, bestTreePoperties.maxDepth, bestTreePoperties.bins)
         val testEval = MulticlassMetrics(predicateDecisionTree(model, testData))
         println("test eval:\t${testEval.accuracy()}")
         println("train + testData:\t${MulticlassMetrics(predicateDecisionTree(model, trainData.union(cvData))).accuracy()}")

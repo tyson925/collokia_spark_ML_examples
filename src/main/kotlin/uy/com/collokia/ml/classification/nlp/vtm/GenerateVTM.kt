@@ -44,7 +44,7 @@ fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row>
 }
 
 
-fun constructVTMPipeline(stopwords: Array<String>): Pipeline {
+fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
     val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
     val tokenizer = RegexTokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
@@ -67,14 +67,12 @@ fun constructVTMPipeline(stopwords: Array<String>): Pipeline {
 
     val ngram = OwnNGram().setInputCol(remover.outputCol).setOutputCol("ngrams")
 
-    //val concatWs = ConcatWSTransformer().setInputCols(arrayOf(remover.outputCol, ngram.outputCol)).setOutputCol("bigrams")
-
     val cvModel = CountVectorizer().setInputCol(ngram.outputCol)
             .setOutputCol("tfFeatures")
-            .setVocabSize(2000)
+            .setVocabSize(vocabSize)
             .setMinDF(3.0)
-    //val cvModel = CountVectorizer().setInputCol(remover.setOutputCol).setOutputCol(featureCol).setVocabSize(2000).setMinDF(2.0)
 
+    //it is useless
     val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
     val normalizer = Normalizer().setInputCol(idf.outputCol).setOutputCol("content_features").setP(1.0)
@@ -84,12 +82,12 @@ fun constructVTMPipeline(stopwords: Array<String>): Pipeline {
             .setWithStd(true)
             .setWithMean(false)
 
-    val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngram, cvModel, idf, normalizer))
+    val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngram, cvModel, normalizer))
 
     return pipeline
 }
 
-fun constructTitleVtmDataPipeline(stopwords: Array<String>): Pipeline {
+fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
 
     val stopwordsApplied = if (stopwords.size == 0) {
         println("Load default english stopwords...")
@@ -116,7 +114,7 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>): Pipeline {
 
     val titleCVModel = CountVectorizer().setInputCol(ngram.outputCol)
             .setOutputCol("tf_titleFeatures")
-            .setVocabSize(1000)
+            .setVocabSize(vocabSize)
             .setMinDF(2.0)
 
     val titleNormalizer = Normalizer().setInputCol(titleCVModel.outputCol)
@@ -127,7 +125,7 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>): Pipeline {
     return pipeline
 }
 
-fun constructTagVtmDataPipeline(): Pipeline {
+fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
     val tagTokenizer = RegexTokenizer().setInputCol(DocumentRow::labels.name).setOutputCol("tag_words")
             .setMinTokenLength(2)
             .setToLowercase(true)
@@ -138,7 +136,7 @@ fun constructTagVtmDataPipeline(): Pipeline {
 
     val tagCVModel = CountVectorizer().setInputCol(tagTokenizer.outputCol)
             .setOutputCol("tag_tfFeatures")
-            .setVocabSize(1000)
+            .setVocabSize(vocabSize)
             .setMinDF(1.0)
 
     val tagNormalizer = Normalizer().setInputCol(tagCVModel.outputCol)

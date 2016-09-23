@@ -30,6 +30,7 @@ class PredicateModel() : Serializable {
     companion object {
         val LOG = LoggerFactory.getLogger(PredicateModel::class.java)
         val MAPPER = jacksonObjectMapper()
+
         @JvmStatic fun main(args: Array<String>){
             val predicateModel = PredicateModel()
             predicateModel.runOnSpark()
