@@ -21,6 +21,5 @@ class OwnNGram : UnaryTransformer<WrappedArray<String>, Array<String>, OwnNGram>
         //return UUID.randomUUID().toString()
         return "uid1111111"
     }
-
 }
 

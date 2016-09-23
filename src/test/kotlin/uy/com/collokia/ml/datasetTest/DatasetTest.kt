@@ -7,23 +7,20 @@ import org.apache.spark.sql.SparkSession
 import uy.com.collokia.common.utils.deleteIfExists
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.classification.DocumentRow
-import uy.com.collokia.ml.rdf.LABELS
+import uy.com.collokia.ml.classification.nlp.vtm.constructTagVtmDataPipeline
+import uy.com.collokia.ml.classification.nlp.vtm.constructTitleVtmDataPipeline
+import uy.com.collokia.ml.classification.nlp.vtm.constructVTMPipeline
+import uy.com.collokia.util.DocumentRow
+import uy.com.collokia.util.LABELS
+import uy.com.collokia.util.featureCol
 import java.io.Serializable
 
-
 class DatasetTest() : Serializable {
-
-
-
 
     fun datasetAssamblerTest(jsc: JavaSparkContext) {
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
 
         val stopwords = jsc.broadcast(jsc.textFile("./data/stopwords.txt").collect().toTypedArray())
-
-        val documentClassification = DocumentClassification()
 
         val corpus = sparkSession.createDataFrame(listOf(DocumentRow("bigdata", "Hi I heard about Spark", "big data with spark", "spark big data"),
 
@@ -40,7 +37,7 @@ class DatasetTest() : Serializable {
         //corpus.select(functions.array("content","title")).show(3,false)
         //corpus.select(corpus.col("*"), functions.split(functions.concat_ws(" ",corpus.col("content"),corpus.col("title"))," ").`as`("content")).show(3,false)
 
-        val vtmDataPipeline = documentClassification.constructVTMPipeline(stopwords.value)
+        val vtmDataPipeline = constructVTMPipeline(stopwords.value)
 
         println(corpus.count())
 
@@ -57,7 +54,7 @@ class DatasetTest() : Serializable {
 
         val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords", "tfFeatures")
 
-        val vtmTitlePipeline = documentClassification.constructTitleVtmDataPipeline(stopwords.value)
+        val vtmTitlePipeline = constructTitleVtmDataPipeline(stopwords.value)
 
         val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
 
@@ -65,7 +62,7 @@ class DatasetTest() : Serializable {
 
         parsedCorpusTitle.show(10, false)
 
-        val vtmTagPipeline = documentClassification.constructTagVtmDataPipeline()
+        val vtmTagPipeline = constructTagVtmDataPipeline()
 
         val vtmTagPipelineModel = vtmTagPipeline.fit(parsedCorpusTitle)
 
@@ -79,7 +76,7 @@ class DatasetTest() : Serializable {
 
         //VectorAssembler().
         val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol, tagNormalizer.outputCol))
-                .setOutputCol(DocumentClassification.featureCol)
+                .setOutputCol(featureCol)
 
         assembler.transform(fullParsedCorpus).show(3, false)
     }

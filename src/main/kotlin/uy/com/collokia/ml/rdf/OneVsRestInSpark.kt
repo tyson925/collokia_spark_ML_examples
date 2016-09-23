@@ -12,33 +12,18 @@ import org.apache.spark.ml.classification.OneVsRest
 import org.apache.spark.ml.feature.*
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SparkSession
-import scala.Serializable
 import scala.Tuple2
 import uy.com.collokia.common.utils.deleteIfExists
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.printMatrix
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.classification.VTM_PIPELINE
+import uy.com.collokia.ml.classification.nlp.vtm.constructTagVtmDataPipeline
+import uy.com.collokia.ml.classification.nlp.vtm.constructTitleVtmDataPipeline
+import uy.com.collokia.ml.classification.nlp.vtm.constructVTMPipeline
 import uy.com.collokia.ml.classification.readData.readDzoneFromEs
+import uy.com.collokia.util.*
 import java.text.DecimalFormat
-import java.text.NumberFormat
 
-val OVR_MODEL = "./data/model/ovrDectisonTree"
-val LABELS = "./data/model/labelIndexer"
-
-data class EvaluationMetrics(val category: String, val fMeasure: Double, val precision: Double, val recall: Double) : Serializable {
-    companion object {
-        val formatter = DecimalFormat("#0.00")
-    }
-
-    override fun toString(): String {
-        return "evaluation metrics for $category:\t" +
-                "FMeasure:\t${formatter.format(fMeasure)}\t" +
-                "Precision:\t${formatter.format(precision)}\t" +
-                "Recall:${formatter.format(recall)}"
-    }
-}
 
 class OneVsRestInSpark() {
 
@@ -55,12 +40,13 @@ class OneVsRestInSpark() {
         val stopwords = jsc.broadcast(jsc.textFile("./data/stopwords.txt").collect().toTypedArray())
 
 
-        val documentClassification = DocumentClassification()
+
         //val parsedCorpus = documentClassification.parseCorpus(sparkSession, corpusInRaw, null)
         val corpus = readDzoneFromEs(sparkSession, jsc)
         //val parsedCorpus = readSoContenFromEs(jsc, "dzone_data/SOThreadExtractValues").convertRDDToDF(sparkSession)
 
-        val vtmDataPipeline = documentClassification.constructVTMPipeline(stopwords.value)
+        val vtmDataPipeline = constructVTMPipeline(stopwords.value)
+
 
         println(corpus.count())
 
@@ -77,7 +63,7 @@ class OneVsRestInSpark() {
 
         val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords","ngrams", "tfFeatures")
 
-        val vtmTitlePipeline = documentClassification.constructTitleVtmDataPipeline(stopwords.value)
+        val vtmTitlePipeline = constructTitleVtmDataPipeline(stopwords.value)
 
         val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
 
@@ -85,13 +71,13 @@ class OneVsRestInSpark() {
 
         parsedCorpusTitle.show(10, false)
 
-        val vtmTagPipeline = documentClassification.constructTagVtmDataPipeline()
+        val vtmTagPipeline = constructTagVtmDataPipeline()
 
         val vtmTagPipelineModel = vtmTagPipeline.fit(parsedCorpusTitle)
 
         val fullParsedCorpus = vtmTagPipelineModel.transform(parsedCorpusTitle).drop("tag_words", "tag_ngrams", "tag_tfFeatures")
 
-        val contentScaler = vtmPipelineModel.stages().last() as StandardScalerModel
+        val contentScaler = vtmPipelineModel.stages().last() as Normalizer
 
         val titleNormalizer = vtmTitlePipelineModel.stages().last() as Normalizer
 
@@ -99,7 +85,7 @@ class OneVsRestInSpark() {
 
         //VectorAssembler().
         val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol, tagNormalizer.outputCol))
-                .setOutputCol(DocumentClassification.featureCol)
+                .setOutputCol(featureCol)
 
         val (train, test) = assembler.transform(fullParsedCorpus).randomSplit(doubleArrayOf(0.9, 0.1))
         if (deleteIfExists(VTM_PIPELINE)) {
@@ -118,8 +104,8 @@ class OneVsRestInSpark() {
         val nb = NaiveBayes()
 
         val oneVsRest = OneVsRest().setClassifier(lr)
-                .setFeaturesCol(DocumentClassification.featureCol)
-                .setLabelCol(DocumentClassification.labelIndexCol)
+                .setFeaturesCol(featureCol)
+                .setLabelCol(labelIndexCol)
 
         train.show(3)
 
@@ -145,7 +131,7 @@ class OneVsRestInSpark() {
 
         predictions.show(3)
         // evaluate the model
-        val predictionsAndLabels = predictions.select("prediction", DocumentClassification.labelIndexCol).toJavaRDD().map({ row ->
+        val predictionsAndLabels = predictions.select("prediction", labelIndexCol).toJavaRDD().map({ row ->
             Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any)
         })
 

@@ -27,23 +27,22 @@ import uy.com.collokia.common.utils.machineLearning.predicateDecisionTree
 import uy.com.collokia.common.utils.machineLearning.printMulticlassMetrics
 import uy.com.collokia.common.utils.machineLearning.randomClassifier
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.scala.ClassTagger
 import uy.com.collokia.util.REUTERS_DATA
+import uy.com.collokia.util.featureCol
+import uy.com.collokia.util.labelIndexCol
 import java.io.Serializable
+import uy.com.collokia.ml.classification.nlp.vtm.*
+import uy.com.collokia.ml.classification.readData.parseCorpus
 
 
-public class DecisionTreeInSpark() : Serializable {
+class DecisionTreeInSpark() : Serializable {
 
+    fun evaluate10FoldDF(sparkSession : SparkSession, dataInRaw: JavaRDD<String>, category : String) {
 
+        val vtmPipeline = constructVTMPipeline(arrayOf())
 
-    public fun evaulate10FoldDF(sparkSession : SparkSession,dataInRaw: JavaRDD<String>,category : String) {
-
-        val documentClassification = DocumentClassification()
-
-        val vtmPipeline = documentClassification.constructVTMPipeline(arrayOf())
-
-        val data =documentClassification.parseCorpus(sparkSession,dataInRaw,category)
+        val data = parseCorpus(sparkSession,dataInRaw,category)
         val impurity = "gini"
         val depth = 10
         val bins = 300
@@ -52,7 +51,7 @@ public class DecisionTreeInSpark() : Serializable {
 
         val vtm = vtmPipeline.fit(data).transform(data)
 
-        val decisionTree = DecisionTreeClassifier().setFeaturesCol(DocumentClassification.featureCol).setLabelCol(DocumentClassification.labelIndexCol).setImpurity(impurity)
+        val decisionTree = DecisionTreeClassifier().setFeaturesCol(featureCol).setLabelCol(labelIndexCol).setImpurity(impurity)
 
         val pipeline = Pipeline().setStages(arrayOf(decisionTree))
 
@@ -64,7 +63,7 @@ public class DecisionTreeInSpark() : Serializable {
                 .build()
 
 
-        val evaulator = MulticlassClassificationEvaluator().setLabelCol(DocumentClassification.labelIndexCol).setPredictionCol("prediction")
+        val evaulator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol("prediction")
 
         // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
         //evaulator.set("metricName", "f1(1.0)")
@@ -93,13 +92,13 @@ public class DecisionTreeInSpark() : Serializable {
 
     }
 
-    public fun evaulate10Fold(data: JavaRDD<LabeledPoint>): Double {
+    fun evaluate10Fold(data: JavaRDD<LabeledPoint>): Double {
         val tenFolds = MLUtils.kFold(data.rdd(), 10, 10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData, testData) = fold
             println("number of fold:\t${i}")
-            val Fmeasure = evaulateDecisionTreeModel(trainData.toJavaRDD(), testData.toJavaRDD(), 2)
+            val Fmeasure = evaluateDecisionTreeModel(trainData.toJavaRDD(), testData.toJavaRDD(), 2)
             trainData.unpersist(false)
             testData.unpersist(false)
             Fmeasure
@@ -108,7 +107,7 @@ public class DecisionTreeInSpark() : Serializable {
     }
 
 
-    public fun evaulateDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    fun evaluateDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
         val impurity = "gini"
         val depth = 10
@@ -125,7 +124,7 @@ public class DecisionTreeInSpark() : Serializable {
         return evaulateAndPrintPrediction(numClasses,testPrediction)
     }
 
-    public fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
+    fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
         // Build a simple default DecisionTreeModel
         println("train a decision tree with classes ${numClasses} and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
 
@@ -135,7 +134,7 @@ public class DecisionTreeInSpark() : Serializable {
     }
 
 
-    public fun evaluateDecisionTree(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    fun evaluateDecisionTree(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
         val evaluations =
                 listOf("gini", "entropy").flatMap { impurity ->
                     intArrayOf(10, 20, 30).flatMap { depth ->
@@ -163,7 +162,7 @@ public class DecisionTreeInSpark() : Serializable {
         return testEval.fMeasure(1.0)
     }
 
-    public fun unencodeOneHot(rawData: JavaRDD<String>): JavaRDD<LabeledPoint> {
+    fun unencodeOneHot(rawData: JavaRDD<String>): JavaRDD<LabeledPoint> {
 
         val res = rawData.map { line ->
             val values = line.split(',').map({ value -> value.toDouble() })
@@ -182,7 +181,7 @@ public class DecisionTreeInSpark() : Serializable {
         return res
     }
 
-    public fun evaluateCategorical(rawData: JavaRDD<String>) {
+    fun evaluateCategorical(rawData: JavaRDD<String>) {
         val data = unencodeOneHot(rawData)
 
         val (trainData, cvData, testData) = data.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
@@ -220,7 +219,7 @@ public class DecisionTreeInSpark() : Serializable {
     }
 
 
-    public fun runTenFold() {
+    fun runTenFold() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
 
@@ -230,16 +229,16 @@ public class DecisionTreeInSpark() : Serializable {
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
-                    .getOrCreate()
+                    .orCreate
 
-            evaulate10FoldDF(sparkSession, corpusInRaw, "earn")
+            evaluate10FoldDF(sparkSession, corpusInRaw, "earn")
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
 
 
-    public fun runRDF() {
+    fun runRDF() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
 
@@ -270,15 +269,14 @@ public class DecisionTreeInSpark() : Serializable {
             testData.unpersist()
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
-
     }
 
+    companion object {
+        @JvmStatic fun main(args: Array<String>){
+            BasicConfigurator.configure()
+            val decisionTree = DecisionTreeInSpark()
+            //decisionTree.runRDF()
+            decisionTree.runTenFold()
+        }
+    }
 }
-
-fun main(args: Array<String>) {
-    BasicConfigurator.configure()
-    val decisionTree = DecisionTreeInSpark()
-    //decisionTree.runRDF()
-    decisionTree.runTenFold()
-}
-

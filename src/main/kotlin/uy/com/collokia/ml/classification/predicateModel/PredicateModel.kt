@@ -14,39 +14,45 @@ import org.apache.spark.sql.SparkSession
 import org.slf4j.LoggerFactory
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.DocumentClassification
-import uy.com.collokia.ml.classification.DocumentRow
-import uy.com.collokia.ml.classification.VTM_PIPELINE
-import uy.com.collokia.ml.rdf.LABELS
-import uy.com.collokia.ml.rdf.OVR_MODEL
+import uy.com.collokia.util.DocumentRow
+import uy.com.collokia.util.VTM_PIPELINE
 import java.io.File
 import java.io.Serializable
 import java.util.*
+import uy.com.collokia.ml.classification.readData.documentRddToDF
+import uy.com.collokia.util.LABELS
+import uy.com.collokia.util.OVR_MODEL
 
-public data class Article(val id : String, val content : String, val title : String, val labels : List<String>, val date : String, val category : String) : Serializable
+data class Article(val id: String, val content: String, val title: String, val labels: List<String>, val date: String, val category: String) : Serializable
 
-public class PredicateModel() : Serializable {
+class PredicateModel() : Serializable {
 
     companion object {
         val LOG = LoggerFactory.getLogger(PredicateModel::class.java)
         val MAPPER = jacksonObjectMapper()
+        @JvmStatic fun main(args: Array<String>){
+            val predicateModel = PredicateModel()
+            predicateModel.runOnSpark()
+            //extractContentBoiler(URL("https://jaceklaskowski.gitbooks.io/mastering-apache-spark/content/spark-mllib-models.html"), PredicateModel.LOG)
+            //predicateModel.downloadOrigoData("http://data-artisans.com/extending-the-yahoo-streaming-benchmark/")
+        }
 
     }
 
-    public fun predicateModel(jsc: JavaSparkContext) {
+    fun predicateModel(jsc: JavaSparkContext) {
         val vtmPipeline = PipelineModel.load(VTM_PIPELINE)
         val ovrModel = OneVsRestModel.load(OVR_MODEL)
 
-        val sparkSession = SparkSession.builder().master("local").appName("prediction").getOrCreate()
+        val sparkSession = SparkSession.builder().master("local").appName("prediction").orCreate
 
         val urls = loadUrls()
 
-        val contents = jsc.parallelize(listOf("big data big data apache spark","big data"))
+        val contents = jsc.parallelize(listOf("big data big data apache spark", "big data"))
 
         val urlContents = File("./data/urls/corpus.json").readLines().map { line ->
-         val article =   MAPPER.readValue(line,Article::class.java)
+            val article = MAPPER.readValue(line, Article::class.java)
             val content = article.content + "\n" + article.title
-            DocumentRow("bigData", content,"","")
+            DocumentRow("bigData", content, "", "")
         }
 
         /*val urlContentsRDD = contents.map { content ->
@@ -55,9 +61,7 @@ public class PredicateModel() : Serializable {
 
         val urlContentsRDD = jsc.parallelize(urlContents)
 
-        val documentClassification = DocumentClassification()
-
-        val test = vtmPipeline.transform(documentClassification.documentRddToDF(sparkSession, urlContentsRDD))
+        val test = vtmPipeline.transform(documentRddToDF(sparkSession, urlContentsRDD))
 
         val indexer = StringIndexerModel.load(LABELS)
 
@@ -85,10 +89,10 @@ public class PredicateModel() : Serializable {
         return res
     }
 
-    public fun runOnSpark() {
+    fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
-                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "false")
+                    .set("es.nodes", "localhost:9200").set("es.nodes.discovery", "true")
 
             val jsc = JavaSparkContext(sparkConf)
             predicateModel(jsc)
@@ -96,17 +100,5 @@ public class PredicateModel() : Serializable {
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
-
-    public fun downloadOrigoData(url: String) {
-//        println(extractContentBoiler(URL(url), LOG))
-    }
-
 }
 
-
-fun main(args: Array<String>) {
-    val predicateModel = PredicateModel()
-    predicateModel.runOnSpark()
-    //extractContentBoiler(URL("https://jaceklaskowski.gitbooks.io/mastering-apache-spark/content/spark-mllib-models.html"), PredicateModel.LOG)
-    //predicateModel.downloadOrigoData("http://data-artisans.com/extending-the-yahoo-streaming-benchmark/")
-}

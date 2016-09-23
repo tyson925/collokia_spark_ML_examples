@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package uy.com.collokia.ml.collaborativeFiltering.movie
 
 import org.apache.log4j.BasicConfigurator
@@ -16,13 +18,21 @@ import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.common.utils.rdd.combineByKeyIntoList
 import uy.com.collokia.scala.scalaClassTag
-import uy.com.collokia.util.*
 import java.io.Serializable
 
 data class Movie(val movieId: Int, val title: String, var genres: List<String>?, var prediction: Double) : Serializable
 
-public class MovieRank() : Serializable {
-    public fun simpleExampleRun(data : JavaRDD<String>) {
+class MovieRank() : Serializable {
+
+
+    companion object {
+        @JvmStatic fun main(args :Array<String>){
+            val movieRankExample = MovieRank()
+            movieRankExample.runMovieRank()
+        }
+    }
+
+    fun simpleExampleRun(data: JavaRDD<String>) {
 
         // Load and parse the testData
         val ratings = data.map({ line ->
@@ -31,10 +41,10 @@ public class MovieRank() : Serializable {
         })
 
         val rank = 10
-        val numIterations = 20;
+        val numIterations = 20
 
         // Build the recommendation model using ALS
-        val model = ALS.train(JavaRDD.toRDD(ratings), rank, numIterations, 0.01);
+        val model = ALS.train(JavaRDD.toRDD(ratings), rank, numIterations, 0.01)
 
 
         // Evaluate the model on rating testData
@@ -53,16 +63,15 @@ public class MovieRank() : Serializable {
 
         // TODO: revisit what is weird about this not working with a lambda
         val MSE = ratesAndPreds.mapToDouble<Double>(DoubleFunction { resultsPair ->
-            val err = resultsPair._1() - resultsPair._2();
+            val err = resultsPair._1() - resultsPair._2()
             err * err
         }).mean()
 
-        System.out.println("Mean Squared Error = " + MSE);
+        System.out.println("Mean Squared Error = " + MSE)
 
     }
 
-    public fun evaluateALS(movieRatingDataInLine : JavaRDD<String>) {
-
+    fun evaluateALS(movieRatingDataInLine: JavaRDD<String>) {
 
 
         val movieRatingData = movieRatingDataInLine.map({ line ->
@@ -151,7 +160,7 @@ public class MovieRank() : Serializable {
         return Rating(rating.user(), rating.product(), scaledRating)
     }
 
-    public fun movieLensALS(movieDataInLine : JavaRDD<String>,movieRatingDataInLine : JavaRDD<String>) {
+    fun movieLensALS(movieDataInLine: JavaRDD<String>, movieRatingDataInLine: JavaRDD<String>) {
         val sparkConf = SparkConf().setAppName("Collaborative Filtering Example").setMaster("local[6]")
         val ctx = JavaSparkContext(sparkConf)
 
@@ -204,11 +213,11 @@ public class MovieRank() : Serializable {
 
         // TODO: revisit what is weird about this not working with a lambda
         val MSE = predicatedData.mapToDouble<Double>(DoubleFunction { resultsPair ->
-            val err = resultsPair._1() - resultsPair._2();
+            val err = resultsPair._1() - resultsPair._2()
             err * err
         }).mean()
 
-        System.out.println("Mean Squared Error = " + MSE);
+        System.out.println("Mean Squared Error = " + MSE)
 
         val genreTestData = test.mapToPair({ rating ->
             Tuple2(rating.product(), rating.user())
@@ -222,10 +231,10 @@ public class MovieRank() : Serializable {
 
         val predictionsGenre = model.predict(genreTestData).mapToPair({ rating ->
             Tuple2(rating.product(), Tuple2(rating.user(), rating.rating()))
-        }).join(movieData).mapToPair({ item ->
-            val (movieId, movieData) = item
-            val (rank, movie) = movieData
-            Tuple2(rank._1, Movie(movieId, movie.title, movie.genres, rank._2))
+        }).join(movieData).mapToPair({ prediction ->
+            val (movieId, movieRank) = prediction
+            val (ranking, movie) = movieRank
+            Tuple2(ranking._1, Movie(movieId, movie.title, movie.genres, ranking._2))
         }).combineByKeyIntoList().mapToPair({ item ->
             val list = item._2.sortedByDescending { prediction -> prediction.prediction }
             Tuple2(item._1, list)
@@ -236,18 +245,18 @@ public class MovieRank() : Serializable {
     }
 
 
-    public fun runMovieRank() {
+    fun runMovieRank() {
         val time = measureTimeInMillis {
             BasicConfigurator.configure()
             val sparkConf = SparkConf().setAppName("Collaborative Filtering Example").setMaster("local[6]")
             val jsc = JavaSparkContext(sparkConf)
 
-            val path = "./testData/collaborativeFiltering/test.txt";
-            val testData = jsc.textFile(path);
-            val movieRatingPath = "./testData/collaborativeFiltering/sample_movielens_ratings.txt";
-            val movieRatingDataInLine = jsc.textFile(movieRatingPath);
-            val moviePath = "./testData/collaborativeFiltering/sample_movielens_movies.txt";
-            val movieDataInLine = jsc.textFile(moviePath);
+            val path = "./testData/collaborativeFiltering/test.txt"
+            val testData = jsc.textFile(path)
+            val movieRatingPath = "./testData/collaborativeFiltering/sample_movielens_ratings.txt"
+            val movieRatingDataInLine = jsc.textFile(movieRatingPath)
+            val moviePath = "./testData/collaborativeFiltering/sample_movielens_movies.txt"
+            val movieDataInLine = jsc.textFile(moviePath)
 
             //movieLensALS()
             evaluateALS(movieRatingDataInLine)
@@ -257,9 +266,4 @@ public class MovieRank() : Serializable {
 
 }
 
-fun main(args: Array<String>) {
-    val movieRank = MovieRank()
-    movieRank.runMovieRank()
-
-}
 

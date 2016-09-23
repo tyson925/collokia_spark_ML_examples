@@ -18,27 +18,26 @@ import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateRandomForest
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.DocumentClassification
 import uy.com.collokia.scala.ClassTagger
 
 
-public class RandomForestInSpark(){
+class RandomForestInSpark(){
 
 
-    public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
+    fun evaluate10Fold(data : JavaRDD<LabeledPoint>) : Double{
         val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
             println("number of fold:\t${i}")
-            val Fmeasure = evaulateSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            val Fmeasure = evaluateSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
 
         return resultsInFmeasure.average()
     }
 
-    public fun evaulateSimpleForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    fun evaluateSimpleForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
         val categoricalFeatureInfo = mapOf<Int, Int>()
         val featureSubsetStrategy = "auto"
         val impurity = "gini"
@@ -56,7 +55,7 @@ public class RandomForestInSpark(){
         return evaulateAndPrintPrediction(numClasses,testPrediction)
     }
 
-    public fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, numClasses: Int, categoricalFeatureInfo : Map<Int, Int>,
+    fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, numClasses: Int, categoricalFeatureInfo : Map<Int, Int>,
                                  featureSubsetStrategy : String, impurity : String, maxDepth : Int, maxBin : Int, numTree : Int): RandomForestModel {
         println("train a reandom forest with ${numClasses} classes and parameteres featureSubsetStrategy=${featureSubsetStrategy} impurity=${impurity}," +
                 " depth=${maxDepth}, bins=${maxBin}, numTree=${numTree}")
@@ -65,7 +64,7 @@ public class RandomForestInSpark(){
 
     }
 
-    public fun evaluateForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
+    fun evaluateForest(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int) {
         val categoricalFeatureInfo = mapOf<Int, Int>()
         val featureSubsetStrategy = "auto"
         val impurities = listOf("gini", "entropy")
@@ -104,7 +103,7 @@ public class RandomForestInSpark(){
     }
 
 
-    public fun runTenFold() {
+    fun runTenFoldOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("RandomForest").setMaster("local[6]")
 
@@ -114,13 +113,19 @@ public class RandomForestInSpark(){
             val sparkSession = SparkSession.builder()
                     .master("local")
                     .appName("reuters classification")
-                    .getOrCreate()
+                    .orCreate
             //val (trainDF, cvDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.8, 0.1, 0.1))
             //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
-            val docClass = DocumentClassification()
             //val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
-            //evaulate10Fold(parsedCorpus)
+            //evaluate10Fold(parsedCorpus)
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+    }
+
+    companion object {
+        @JvmStatic fun main(args : Array<String>){
+            val randomForset = RandomForestInSpark()
+            randomForset.runTenFoldOnSpark()
+        }
     }
 }
