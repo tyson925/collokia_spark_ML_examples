@@ -63,7 +63,7 @@ import uy.com.collokia.ml.classification.readData.parseCorpus
             val dtFMeasure = decisionTree.evaluate10Fold(data)
             val rfFMeasure = randomForest.evaluate10Fold(data)
             val svmFMeasure = svm.evaulate10Fold(data)
-            val logRegFMeasure = logReg.evaulate10Fold(data)
+            val logRegFMeasure = logReg.evaluate10Fold(data)
 
             data.unpersist()
             ClassifierResults(category, dtFMeasure, rfFMeasure, svmFMeasure, logRegFMeasure)
@@ -91,7 +91,7 @@ import uy.com.collokia.ml.classification.readData.parseCorpus
             saveArff(arffData, "./testData/reuters/arff/${category}.arff")
 
             //val fMeasure = decisionTree.evaluate10Fold(data)
-            val fMeasure = logisticRegression.evaulate10Fold(data)
+            val fMeasure = logisticRegression.evaluate10Fold(data)
 
             //val Fmeasure = 1.0
 

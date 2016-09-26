@@ -34,9 +34,8 @@ import uy.com.collokia.util.labelIndexCol
 import java.io.Serializable
 import uy.com.collokia.ml.classification.nlp.vtm.*
 import uy.com.collokia.ml.classification.readData.parseCorpus
+import uy.com.collokia.util.DecisionTreeProperties
 
-
-data class DecisionTreeProperties(val impurity : String,val maxDepth : Int,val bins :Int) : Serializable
 
 class DecisionTreeInSpark() : Serializable {
 

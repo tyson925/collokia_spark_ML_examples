@@ -73,16 +73,16 @@ fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
             .setMinDF(3.0)
 
     //it is useless
-    val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
+    //val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
-    val normalizer = Normalizer().setInputCol(idf.outputCol).setOutputCol("content_features").setP(1.0)
+    val normalizer = Normalizer().setInputCol(cvModel.outputCol).setOutputCol("content_features").setP(1.0)
     val scaler = StandardScaler()
             .setInputCol(cvModel.outputCol)
             .setOutputCol("content_features")
             .setWithStd(true)
             .setWithMean(false)
 
-    val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngram, cvModel, normalizer))
+    val pipeline = Pipeline().setStages(arrayOf(indexer, tokenizer, remover, ngram, cvModel, scaler))
 
     return pipeline
 }
@@ -121,7 +121,13 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pi
             .setOutputCol("title_features")
             .setP(1.0)
 
-    val pipeline = Pipeline().setStages(arrayOf(titleTokenizer, titleRemover, ngram, titleCVModel, titleNormalizer))
+    val scaler = StandardScaler()
+            .setInputCol(titleCVModel.outputCol)
+            .setOutputCol("title_features")
+            .setWithStd(true)
+            .setWithMean(false)
+
+    val pipeline = Pipeline().setStages(arrayOf(titleTokenizer, titleRemover, ngram, titleCVModel, scaler))
     return pipeline
 }
 
@@ -143,7 +149,13 @@ fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
             .setOutputCol("tag_features")
             .setP(1.0)
 
-    val pipeline = Pipeline().setStages(arrayOf(tagTokenizer, tagCVModel, tagNormalizer))
+    val scaler = StandardScaler()
+            .setInputCol(tagCVModel.outputCol)
+            .setOutputCol("tag_features")
+            .setWithStd(true)
+            .setWithMean(false)
+
+    val pipeline = Pipeline().setStages(arrayOf(tagTokenizer, tagCVModel, scaler))
     return pipeline
 
 }

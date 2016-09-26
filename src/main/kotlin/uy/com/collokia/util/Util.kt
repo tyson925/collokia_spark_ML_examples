@@ -29,6 +29,11 @@ val labelIndexCol = "categoryIndex"
 val OVR_MODEL = "./data/model/ovrDectisonTree"
 val LABELS = "./data/model/labelIndexer"
 
+data class DecisionTreeProperties(val impurity : String,val maxDepth : Int,val bins :Int) : Serializable
+data class LogisticRegressionProperties(val numIterations : Int,val stepSize : Double,val fitIntercept: Boolean,val standardization : Boolean) : Serializable
+data class NaiveBayesProperties(val modelType : String, val smoothing : Double) : Serializable
+
+
 data class EvaluationMetrics(val category: String, val fMeasure: Double, val precision: Double, val recall: Double) : scala.Serializable {
     companion object {
         val formatter = DecimalFormat("#0.00")
