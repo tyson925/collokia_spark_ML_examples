@@ -1,4 +1,4 @@
-package uy.com.collokia.ml.classification.weka
+package uy.com.collokia.util.weka
 
 import uy.com.collokia.common.utils.machineLearning.loadArff
 import weka.classifiers.evaluation.Evaluation

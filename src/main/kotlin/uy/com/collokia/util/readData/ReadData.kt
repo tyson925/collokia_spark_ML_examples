@@ -1,6 +1,6 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-package uy.com.collokia.ml.classification.readData
+package uy.com.collokia.util.readData
 
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
@@ -15,7 +15,7 @@ import uy.com.collokia.util.DocumentRow
 import uy.com.collokia.util.MAPPER
 import uy.com.collokia.util.ReutersDocument
 import java.io.File
-import uy.com.collokia.ml.classification.DocumentClassification
+import uy.com.collokia.ml.classification.ReutersDocumentClassification
 
 public fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : Dataset<DocumentRow> {
 
@@ -47,7 +47,7 @@ fun readReutersJson() {
                 reutersDoc.body?.let { body ->
                     println(index++)
                     reutersDoc.body = reutersDoc.body?.replace("\n", "")
-                    if (reutersDoc.topics != null && reutersDoc.topics.intersect(DocumentClassification.topCategories).isNotEmpty()) {
+                    if (reutersDoc.topics != null && reutersDoc.topics.intersect(ReutersDocumentClassification.topCategories).isNotEmpty()) {
                         writer.write(MAPPER.writeValueAsString(reutersDoc) + "\n")
                     }
                 }
@@ -86,8 +86,8 @@ fun documentRddToDF(sparkSession: SparkSession, corpusRow: JavaRDD<DocumentRow>)
 
 private fun filterToOneCategory(corpusInRaw: JavaRDD<String>, category: String): JavaRDD<DocumentRow> {
     val corpusRow = corpusInRaw.map { line ->
-        val doc = DocumentClassification.MAPPER.readValue(line, ReutersDocument::class.java)
-        val topics = doc.topics?.intersect(DocumentClassification.topCategories) ?: listOf<String>()
+        val doc = ReutersDocumentClassification.MAPPER.readValue(line, ReutersDocument::class.java)
+        val topics = doc.topics?.intersect(ReutersDocumentClassification.topCategories) ?: listOf<String>()
         val content = doc.body + (doc.title ?: "")
 
         val row = if (topics.contains(category)) {
@@ -102,11 +102,11 @@ private fun filterToOneCategory(corpusInRaw: JavaRDD<String>, category: String):
 
 private fun filterToTopCategories(corpusInRaw: JavaRDD<String>): JavaRDD<DocumentRow> {
     val corpusRow = corpusInRaw.map { line ->
-        val doc = DocumentClassification.MAPPER.readValue(line, ReutersDocument::class.java)
-        val topics = doc.topics?.intersect(DocumentClassification.topCategories) ?: listOf<String>()
+        val doc = ReutersDocumentClassification.MAPPER.readValue(line, ReutersDocument::class.java)
+        val topics = doc.topics?.intersect(ReutersDocumentClassification.topCategories) ?: listOf<String>()
         val content = doc.body + (doc.title ?: "")
 
-        val intersectCategory = topics.intersect(DocumentClassification.topCategories)
+        val intersectCategory = topics.intersect(ReutersDocumentClassification.topCategories)
         intersectCategory.first()
         val rows = intersectCategory.map { category ->
             DocumentRow(category, content, "", "")

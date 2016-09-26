@@ -19,7 +19,7 @@ import uy.com.collokia.util.VTM_PIPELINE
 import java.io.File
 import java.io.Serializable
 import java.util.*
-import uy.com.collokia.ml.classification.readData.documentRddToDF
+import uy.com.collokia.util.readData.documentRddToDF
 import uy.com.collokia.util.LABELS
 import uy.com.collokia.util.OVR_MODEL
 

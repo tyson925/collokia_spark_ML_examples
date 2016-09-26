@@ -12,22 +12,22 @@ import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
 import java.io.Serializable
 
-public class SVMSpark() : Serializable {
+class SVMSpark() : Serializable {
 
 
-    public fun evaulate10Fold(data : JavaRDD<LabeledPoint>) : Double{
+    fun evaluate10Fold(data : JavaRDD<LabeledPoint>) : Double{
         val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
             println("number of fold:\t${i}")
-            val Fmeasure = evaulateSVM(trainData.toJavaRDD(),testData.toJavaRDD(),2)
+            val Fmeasure = evaluateSVM(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
         return resultsInFmeasure.average()
     }
 
-    public fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int): SVMModel {
+    fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int): SVMModel {
 // Run training algorithm to build the model
         val numIterations = 300
         println("Build SVM with ${numClasses} classes...")
@@ -35,7 +35,7 @@ public class SVMSpark() : Serializable {
         return model
     }
 
-    public fun evaulateSVM(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    fun evaluateSVM(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
 
         val model = buildSimpleSVM(trainData, numClasses)
 

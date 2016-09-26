@@ -19,6 +19,23 @@ import uy.com.collokia.util.labelIndexCol
 
 @Suppress("UNUSED_VARIABLE")
 
+val tokenizerOutputCol = "words"
+val removeOutputCol = "filteredWords"
+val ngramOutputCol = "ngrams"
+val cvModelOutputCol = "tfFeatures"
+val contentOutputCol = "content_features"
+val titleTokenizerOutputCol = "title_words"
+val titleRemoverOutputCol = "filtered_titleWords"
+val titleNgramsOutputCol = "title_ngrams"
+val titleCvModelOutputCol = "tf_titleFeatures"
+val titleOutputCol = "title_Features"
+val tagTokenizerOutputCol = "tag_words"
+val tagCvModelOutputCol = "tag_tfFeatures"
+val tagOutputCol = "tag_features"
+val CONTENT_VTM_VOC_SIZE = 2000
+val TITLE_VTM_VOC_SIZE = 800
+val TAG_VTM_VOC_SIZE = 400
+
 fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row> {
 
     val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol("categoryIndex").fit(textDataFrame)
@@ -26,7 +43,7 @@ fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row>
 
     val indexedTextDataFrame = indexer.transform(textDataFrame)
 
-    val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
+    val tokenizer = Tokenizer().setInputCol(DocumentRow::content.name).setOutputCol(tokenizerOutputCol)
     val wordsDataFrame = tokenizer.transform(indexedTextDataFrame)
 
     val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol(featureCol)
@@ -34,7 +51,7 @@ fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row>
     val filteredWordsDataFrame = remover.transform(wordsDataFrame)
 
     //val ngramTransformer = NGram().setInputCol("filteredWords").setOutputCol("ngrams").setN(4)
-    val ngramTransformer = NGram().setInputCol("words").setOutputCol("ngrams").setN(4)
+    val ngramTransformer = OwnNGram().setInputCol(remover.outputCol).setOutputCol(ngramOutputCol)
 
     //       val ngramsDataFrame = ngramTransformer.transform(filteredWordsDataFrame)
     val ngramsDataFrame = ngramTransformer.transform(wordsDataFrame)
@@ -43,11 +60,10 @@ fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row>
     return filteredWordsDataFrame
 }
 
-
 fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
     val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
-    val tokenizer = RegexTokenizer().setInputCol(DocumentRow::content.name).setOutputCol("words")
+    val tokenizer = RegexTokenizer().setInputCol(DocumentRow::content.name).setOutputCol(tokenizerOutputCol)
             .setMinTokenLength(3)
             .setToLowercase(false)
             .setPattern("\\w+")
@@ -61,24 +77,24 @@ fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
         stopwords
     }
 
-    val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol("filteredWords")
+    val remover = StopWordsRemover().setInputCol(tokenizer.outputCol).setOutputCol(removeOutputCol)
             .setStopWords(stopwordsApplied)
             .setCaseSensitive(false)
 
-    val ngram = OwnNGram().setInputCol(remover.outputCol).setOutputCol("ngrams")
+    val ngram = OwnNGram().setInputCol(remover.outputCol).setOutputCol(ngramOutputCol)
 
     val cvModel = CountVectorizer().setInputCol(ngram.outputCol)
-            .setOutputCol("tfFeatures")
             .setVocabSize(vocabSize)
             .setMinDF(3.0)
+            .setOutputCol(cvModelOutputCol)
 
     //it is useless
     //val idf = IDF().setInputCol(cvModel.outputCol).setOutputCol("idfFeatures").setMinDocFreq(3)
 
-    val normalizer = Normalizer().setInputCol(cvModel.outputCol).setOutputCol("content_features").setP(1.0)
+    val normalizer = Normalizer().setInputCol(cvModel.outputCol).setOutputCol(contentOutputCol).setP(1.0)
     val scaler = StandardScaler()
             .setInputCol(cvModel.outputCol)
-            .setOutputCol("content_features")
+            .setOutputCol(contentOutputCol)
             .setWithStd(true)
             .setWithMean(false)
 
@@ -97,33 +113,33 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pi
         stopwords
     }
 
-    val titleTokenizer = RegexTokenizer().setInputCol(DocumentRow::title.name).setOutputCol("title_words")
+    val titleTokenizer = RegexTokenizer().setInputCol(DocumentRow::title.name).setOutputCol(titleTokenizerOutputCol)
             .setMinTokenLength(3)
             .setToLowercase(true)
             .setPattern("\\w+")
             .setGaps(false)
 
     val titleRemover = StopWordsRemover().setInputCol(titleTokenizer.outputCol)
-            .setOutputCol("filtered_titleWords")
             .setStopWords(stopwordsApplied)
             .setCaseSensitive(false)
+            .setOutputCol(titleRemoverOutputCol)
 
-    val ngram = OwnNGram().setInputCol(titleRemover.outputCol).setOutputCol("title_ngrams")
+    val ngram = OwnNGram().setInputCol(titleRemover.outputCol).setOutputCol(titleNgramsOutputCol)
 
     //val concatWs = ConcatWSTransformer().setInputCols(arrayOf(titleRemover.outputCol, ngram.outputCol)).setOutputCol("title_bigrams")
 
     val titleCVModel = CountVectorizer().setInputCol(ngram.outputCol)
-            .setOutputCol("tf_titleFeatures")
+            .setOutputCol(titleCvModelOutputCol)
             .setVocabSize(vocabSize)
             .setMinDF(2.0)
 
     val titleNormalizer = Normalizer().setInputCol(titleCVModel.outputCol)
-            .setOutputCol("title_features")
+            .setOutputCol(titleOutputCol)
             .setP(1.0)
 
     val scaler = StandardScaler()
             .setInputCol(titleCVModel.outputCol)
-            .setOutputCol("title_features")
+            .setOutputCol(titleOutputCol)
             .setWithStd(true)
             .setWithMean(false)
 
@@ -132,7 +148,7 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pi
 }
 
 fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
-    val tagTokenizer = RegexTokenizer().setInputCol(DocumentRow::labels.name).setOutputCol("tag_words")
+    val tagTokenizer = RegexTokenizer().setInputCol(DocumentRow::labels.name).setOutputCol(tagTokenizerOutputCol)
             .setMinTokenLength(2)
             .setToLowercase(true)
             .setPattern("\\w+")
@@ -141,17 +157,17 @@ fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
     //val ngram = NGram().setInputCol(tagTokenizer.setOutputCol).setOutputCol("tag_ngrams").setN(3)
 
     val tagCVModel = CountVectorizer().setInputCol(tagTokenizer.outputCol)
-            .setOutputCol("tag_tfFeatures")
+            .setOutputCol(tagCvModelOutputCol)
             .setVocabSize(vocabSize)
             .setMinDF(1.0)
 
     val tagNormalizer = Normalizer().setInputCol(tagCVModel.outputCol)
-            .setOutputCol("tag_features")
+            .setOutputCol(tagOutputCol)
             .setP(1.0)
 
     val scaler = StandardScaler()
             .setInputCol(tagCVModel.outputCol)
-            .setOutputCol("tag_features")
+            .setOutputCol(tagOutputCol)
             .setWithStd(true)
             .setWithMean(false)
 

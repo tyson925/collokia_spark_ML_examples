@@ -4,36 +4,28 @@ package uy.com.collokia.ml.rdf
 
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.classification.*
-import org.apache.spark.ml.feature.*
-import org.apache.spark.mllib.classification.SVMWithSGD
-import org.apache.spark.mllib.evaluation.MulticlassMetrics
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.classification.OneVsRest
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import scala.Serializable
-import scala.Tuple2
 import uy.com.collokia.common.utils.deleteIfExists
 import uy.com.collokia.common.utils.formatterToTimePrint
-import uy.com.collokia.common.utils.machineLearning.printMatrix
-import uy.com.collokia.common.utils.machineLearning.printMulticlassMetrics
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.nlp.vtm.constructTagVtmDataPipeline
-import uy.com.collokia.ml.classification.nlp.vtm.constructTitleVtmDataPipeline
-import uy.com.collokia.ml.classification.nlp.vtm.constructVTMPipeline
-import uy.com.collokia.ml.classification.readData.readDzoneFromEs
-import uy.com.collokia.util.*
-import java.text.DecimalFormat
+import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
+import uy.com.collokia.ml.classification.OneVsRest.evaluateModelConfusionMTX
+import uy.com.collokia.ml.classification.OneVsRest.generateVtm
+import uy.com.collokia.util.OVR_MODEL
+import uy.com.collokia.util.featureCol
+import uy.com.collokia.util.labelIndexCol
+import java.io.File
 
 
 class OneVsRestInSpark() : Serializable {
 
     companion object {
-        val formatter = DecimalFormat("#0.00")
-        val CONTENT_VTM_VOC_SIZE = 2000
-        val TITLE_VTM_VOC_SIZE = 800
-        val TAG_VTM_VOC_SIZE = 400
 
         @JvmStatic fun main(args: Array<String>) {
             val ovr = OneVsRestInSpark()
@@ -41,62 +33,6 @@ class OneVsRestInSpark() : Serializable {
         }
     }
 
-    fun generateVtm(jsc: JavaSparkContext): Dataset<Row> {
-        val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
-
-        val stopwords = jsc.broadcast(jsc.textFile("./data/stopwords.txt").collect().toTypedArray())
-
-        val corpus = readDzoneFromEs(sparkSession, jsc)
-
-        val vtmDataPipeline = constructVTMPipeline(stopwords.value, CONTENT_VTM_VOC_SIZE)
-
-        println(corpus.count())
-
-        val vtmPipelineModel = vtmDataPipeline.fit(corpus)
-
-        val cvModel = vtmPipelineModel.stages()[4] as CountVectorizerModel
-        println("cv model vocabulary: " + cvModel.vocabulary().toList())
-
-        val indexer = vtmPipelineModel.stages()[0] as StringIndexerModel
-
-        if (deleteIfExists(LABELS)) {
-            println("save labels...")
-            indexer.save(LABELS)
-        }
-
-        val parsedCorpus = vtmPipelineModel.transform(corpus).drop("content", "words", "filteredWords", "ngrams", "tfFeatures")
-
-        val vtmTitlePipeline = constructTitleVtmDataPipeline(stopwords.value, TITLE_VTM_VOC_SIZE)
-
-        val vtmTitlePipelineModel = vtmTitlePipeline.fit(parsedCorpus)
-
-        val parsedCorpusTitle = vtmTitlePipelineModel.transform(parsedCorpus).drop("title_words", "filtered_titleWords", "title_ngrams", "tf_titleFeatures")
-
-        parsedCorpusTitle.show(10, false)
-
-        val vtmTagPipeline = constructTagVtmDataPipeline(TAG_VTM_VOC_SIZE)
-
-        val vtmTagPipelineModel = vtmTagPipeline.fit(parsedCorpusTitle)
-
-        val fullParsedCorpus = vtmTagPipelineModel.transform(parsedCorpusTitle).drop("tag_words", "tag_ngrams", "tag_tfFeatures")
-
-        val contentScaler = vtmPipelineModel.stages().last() as StandardScalerModel
-
-        val titleNormalizer = vtmTitlePipelineModel.stages().last() as StandardScalerModel
-
-        val tagNormalizer = vtmTagPipelineModel.stages().last() as StandardScalerModel
-
-        //VectorAssembler().
-        val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol, tagNormalizer.outputCol))
-                .setOutputCol(featureCol)
-
-        if (deleteIfExists(VTM_PIPELINE)) {
-            vtmPipelineModel.save(VTM_PIPELINE)
-        }
-
-        val dataset = assembler.transform(fullParsedCorpus)
-        return dataset
-    }
 
     fun evaluateOneVsRest(dataset: Dataset<Row>) {
 
@@ -128,201 +64,6 @@ class OneVsRestInSpark() : Serializable {
         evaluateModelConfusionMTX(ovrModel, test)
     }
 
-    fun evaluateModelConfusionMTX(ovrModel: OneVsRestModel, test: Dataset<Row>) {
-        val indexer = StringIndexerModel.load(LABELS)
-
-        val metrics = evaluateModel(ovrModel, test, indexer)
-        val confusionMatrix = metrics.confusionMatrix()
-
-// compute the false positive rate per label
-//        val predictionColSchema = predictions.schema().fields()[0]
-//        val numClasses = MetadataUtils.getNumClasses(predictionColSchema).get()
-
-        val fprs = (0..indexer.labels().size - 1).map({ p ->
-            val fMeasure = metrics.fMeasure(p.toDouble()) * 100
-            val precision = metrics.precision(p.toDouble()) * 100
-            val recall = metrics.recall(p.toDouble()) * 100
-
-            Tuple2(indexer.labels()[p], EvaluationMetrics(indexer.labels()[p], fMeasure, precision, recall))
-        })
-
-        println(printMatrix(confusionMatrix, indexer.labels().toList()))
-        println("overall results:")
-        println("FMeasure:\t${formatter.format(metrics.weightedFMeasure() * 100)}\t" +
-                "Precision:\t${formatter.format(metrics.weightedPrecision() * 100)}\t" +
-                "Recall:\t${formatter.format(metrics.weightedRecall() * 100)}\t" +
-                "TP:\t${formatter.format(metrics.weightedTruePositiveRate() * 100)}\n" +
-                "Accuracy:\t${formatter.format(metrics.accuracy() * 100)}")
-
-
-        println(fprs.joinToString("\n"))
-    }
-
-    fun evaluateModel(ovrModel: OneVsRestModel, test: Dataset<Row>, indexer: StringIndexerModel): MulticlassMetrics {
-        // Convert indexed labels back to original labels.
-        val labelConverter = IndexToString()
-                .setInputCol("prediction")
-                .setOutputCol("predictedLabel")
-                .setLabels(indexer.labels())
-
-
-        val predicatePipeline = Pipeline().setStages(arrayOf(ovrModel, labelConverter))
-
-        val predictions = predicatePipeline.fit(test).transform(test)
-
-        predictions.show(3)
-        // evaluate the model
-        val predictionsAndLabels = predictions.select("prediction", labelIndexCol).toJavaRDD().map({ row ->
-            Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any)
-        })
-
-        val metrics = MulticlassMetrics(predictionsAndLabels.rdd())
-        return metrics
-    }
-
-    fun evaluateOneVsRestLogReg(dataset: Dataset<Row>) {
-        val (train, test) = dataset.randomSplit(doubleArrayOf(0.9, 0.1))
-        val indexer = StringIndexerModel.load(LABELS)
-
-        val cachedTrain = train.cache()
-        val cachedTest = test.cache()
-
-        val evaluations = listOf(100, 200, 300, 600).flatMap { numIterations ->
-            listOf(1E-5, 1E-6, 1E-7).flatMap { stepSize ->
-                listOf(true, false).flatMap { fitIntercept ->
-                    listOf(true, false).map { standardization ->
-                        val logisticRegression = LogisticRegression()
-                                .setMaxIter(numIterations)
-                                .setTol(stepSize)
-                                .setFitIntercept(fitIntercept)
-                                .setStandardization(standardization)
-
-                        val oneVsRest = OneVsRest().setClassifier(logisticRegression)
-                                .setFeaturesCol(featureCol)
-                                .setLabelCol(labelIndexCol)
-                        val ovrModel = oneVsRest.fit(cachedTrain)
-
-                        val metrics = evaluateModel(ovrModel, cachedTest, indexer)
-                        val properties = LogisticRegressionProperties(numIterations, stepSize, fitIntercept, standardization)
-                        println("${metrics.weightedFMeasure()}\t$properties")
-                        Tuple2(properties, metrics)
-                    }
-                }
-            }
-        }
-
-        val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
-            Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
-        }
-
-        println(sortedEvaluations.joinToString("\n"))
-
-        val bestLogRegProperties = sortedEvaluations.first()._1
-        val bestLogReg = LogisticRegression()
-                .setMaxIter(bestLogRegProperties.numIterations)
-                .setTol(bestLogRegProperties.stepSize)
-                .setFitIntercept(bestLogRegProperties.fitIntercept)
-                .setStandardization(bestLogRegProperties.standardization)
-
-        val oneVsRest = OneVsRest().setClassifier(bestLogReg)
-                .setFeaturesCol(featureCol)
-                .setLabelCol(labelIndexCol)
-        val ovrModel = oneVsRest.fit(cachedTrain)
-
-        evaluateModelConfusionMTX(ovrModel, cachedTest)
-
-
-    }
-
-    fun evaluateOneVsRestNaiveBayes(dataset: Dataset<Row>) {
-        val (train, test) = dataset.randomSplit(doubleArrayOf(0.9, 0.1))
-        val indexer = StringIndexerModel.load(LABELS)
-
-        val cachedTrain = train.cache()
-        val cachedTest = test.cache()
-
-        val evaluations = listOf("multinomial", "bernoulli").flatMap { modelType ->
-            listOf(1.0, 2.0, 5.0).map { smoothing ->
-                val naiveBayes = NaiveBayes().setSmoothing(smoothing).setModelType(modelType)
-                val oneVsRest = OneVsRest().setClassifier(naiveBayes)
-                        .setFeaturesCol(featureCol)
-                        .setLabelCol(labelIndexCol)
-                val ovrModel = oneVsRest.fit(cachedTrain)
-
-                val metrics = evaluateModel(ovrModel, cachedTest, indexer)
-                val properties = NaiveBayesProperties(modelType,smoothing)
-                println("${metrics.weightedFMeasure()}\t$properties")
-                Tuple2(properties, metrics)
-
-            }
-        }
-
-        val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
-            Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
-        }
-
-        println(sortedEvaluations.joinToString("\n"))
-
-        val bestNaiveBayesProperties = sortedEvaluations.first()._1
-        val bestNB = NaiveBayes().setModelType(bestNaiveBayesProperties.modelType).setSmoothing(bestNaiveBayesProperties.smoothing)
-
-
-        val oneVsRest = OneVsRest().setClassifier(bestNB)
-                .setFeaturesCol(featureCol)
-                .setLabelCol(labelIndexCol)
-        val ovrModel = oneVsRest.fit(cachedTrain)
-
-        evaluateModelConfusionMTX(ovrModel, cachedTest)
-
-    }
-
-    fun evaluateOneVsRestDecisionTrees(dataset: Dataset<Row>) {
-
-        val (train, test) = dataset.randomSplit(doubleArrayOf(0.9, 0.1))
-        val indexer = StringIndexerModel.load(LABELS)
-
-        val cachedTrain = train.cache()
-        val cachedTest = test.cache()
-        val evaluations =
-                listOf("gini", "entropy").flatMap { impurity ->
-                    intArrayOf(10, 20, 30).flatMap { depth ->
-                        intArrayOf(40, 300).map { bins ->
-                            val dt = DecisionTreeClassifier().setImpurity(impurity).setMaxDepth(depth).setMaxBins(bins)
-
-                            val oneVsRest = OneVsRest().setClassifier(dt)
-                                    .setFeaturesCol(featureCol)
-                                    .setLabelCol(labelIndexCol)
-                            val ovrModel = oneVsRest.fit(cachedTrain)
-
-                            val metrics = evaluateModel(ovrModel, cachedTest, indexer)
-                            val properties = DecisionTreeProperties(impurity, depth, bins)
-                            println("${metrics.weightedFMeasure()}\t$properties")
-                            Tuple2(properties, metrics)
-                        }
-                    }
-                }
-
-        val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
-            Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
-        }
-
-        println(sortedEvaluations.joinToString("\n"))
-
-        val bestTreeProperties = sortedEvaluations.first()._1
-        val bestDecisionTree = DecisionTreeClassifier()
-                .setImpurity(bestTreeProperties.impurity)
-                .setMaxDepth(bestTreeProperties.maxDepth)
-                .setMaxBins(bestTreeProperties.bins)
-
-        val oneVsRest = OneVsRest().setClassifier(bestDecisionTree)
-                .setFeaturesCol(featureCol)
-                .setLabelCol(labelIndexCol)
-        val ovrModel = oneVsRest.fit(cachedTrain)
-
-        evaluateModelConfusionMTX(ovrModel, cachedTest)
-
-    }
-
 
     fun runOnSpark() {
         val time = measureTimeInMillis {
@@ -332,10 +73,16 @@ class OneVsRestInSpark() : Serializable {
                     .set("es.nodes.wan.only", "false")
 
             val jsc = JavaSparkContext(sparkConf)
-            val dataset = generateVtm(jsc)
+            val sparkSession = SparkSession.builder().master("local").appName("one vs rest example").orCreate
+
+            val dataset = if (File(corpusFileName).exists()) {
+                sparkSession.read().load(corpusFileName)
+            } else {
+                generateVtm(jsc, sparkSession)
+            }
             //evaluateOneVsRestDecisionTrees(dataset)
-            //evaluateOneVsRest(dataset)
-            evaluateOneVsRestNaiveBayes(dataset)
+            evaluateOneVsRest(dataset)
+            //evaluateOneVsRestNaiveBayes(dataset)
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")

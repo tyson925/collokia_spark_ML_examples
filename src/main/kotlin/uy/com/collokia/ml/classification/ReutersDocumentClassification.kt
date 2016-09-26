@@ -25,9 +25,9 @@ import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.util.ClassifierResults
 import uy.com.collokia.util.REUTERS_DATA
 import java.io.Serializable
-import uy.com.collokia.ml.classification.readData.parseCorpus
+import uy.com.collokia.util.readData.parseCorpus
 
-@Suppress("UNUSED_VARIABLE") class DocumentClassification() : Serializable {
+@Suppress("UNUSED_VARIABLE") class ReutersDocumentClassification() : Serializable {
 
     companion object {
         val MAPPER = jacksonObjectMapper()
@@ -37,7 +37,7 @@ import uy.com.collokia.ml.classification.readData.parseCorpus
         val labelIndexCol = "categoryIndex"
 
         @JvmStatic fun main(args : Array<String>){
-            val docClassifier = DocumentClassification()
+            val docClassifier = ReutersDocumentClassification()
             //docClassifier.readReutersJson()
             docClassifier.runOnSpark()
         }
@@ -62,7 +62,7 @@ import uy.com.collokia.ml.classification.readData.parseCorpus
 
             val dtFMeasure = decisionTree.evaluate10Fold(data)
             val rfFMeasure = randomForest.evaluate10Fold(data)
-            val svmFMeasure = svm.evaulate10Fold(data)
+            val svmFMeasure = svm.evaluate10Fold(data)
             val logRegFMeasure = logReg.evaluate10Fold(data)
 
             data.unpersist()

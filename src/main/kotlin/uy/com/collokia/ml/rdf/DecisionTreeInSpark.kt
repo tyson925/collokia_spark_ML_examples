@@ -33,7 +33,7 @@ import uy.com.collokia.util.featureCol
 import uy.com.collokia.util.labelIndexCol
 import java.io.Serializable
 import uy.com.collokia.ml.classification.nlp.vtm.*
-import uy.com.collokia.ml.classification.readData.parseCorpus
+import uy.com.collokia.util.readData.parseCorpus
 import uy.com.collokia.util.DecisionTreeProperties
 
 
@@ -245,7 +245,7 @@ class DecisionTreeInSpark() : Serializable {
 
             val jsc = JavaSparkContext(sparkConf)
 
-            val rawData = jsc.textFile("./testData/DT/covtype.testData.gz")
+            val rawData = jsc.textFile("./data/DT/covtype.data.gz")
 
             val data = rawData.map { line ->
                 val values = line.split(',').map({ value -> value.toDouble() })
@@ -276,8 +276,8 @@ class DecisionTreeInSpark() : Serializable {
         @JvmStatic fun main(args: Array<String>){
             BasicConfigurator.configure()
             val decisionTree = DecisionTreeInSpark()
-            //decisionTree.runRDF()
-            decisionTree.runTenFold()
+            decisionTree.runRDF()
+            //decisionTree.runTenFold()
         }
     }
 }
