@@ -24,6 +24,7 @@ val MAPPER = jacksonObjectMapper()
 
 val featureCol = "normIdfFeatures"
 val labelIndexCol = "categoryIndex"
+val predictionCol = "prediction"
 
 
 val OVR_MODEL = "./data/model/ovrDectisonTree"

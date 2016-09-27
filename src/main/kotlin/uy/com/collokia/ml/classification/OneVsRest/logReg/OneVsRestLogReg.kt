@@ -45,7 +45,6 @@ class OneVsRestLogReg() : Serializable {
                     listOf(true, false).map { standardization ->
                         val oneVsRest = constructLogRegClassifier(numIterations,stepSize,fitIntercept,standardization)
                         val ovrModel = oneVsRest.fit(cachedTrain)
-
                         val metrics = evaluateModel(ovrModel, cachedTest, indexer)
                         val properties = LogisticRegressionProperties(numIterations, stepSize, fitIntercept, standardization)
                         println("${metrics.weightedFMeasure()}\t$properties")
@@ -103,7 +102,6 @@ class OneVsRestLogReg() : Serializable {
     }
 
 
-
     fun runOnSpark() {
         val time = measureTimeInMillis {
             val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
@@ -120,7 +118,8 @@ class OneVsRestLogReg() : Serializable {
                 generateVtm(jsc, sparkSession)
             }
 
-            val bestProperties = evaluateOneVsRestLogReg(dataset)
+            //val bestProperties = evaluateOneVsRestLogReg(dataset)
+            val bestProperties = LogisticRegressionProperties(600,1.0E-7,true,false)
             evaluate10Fold(bestProperties,dataset)
 
         }

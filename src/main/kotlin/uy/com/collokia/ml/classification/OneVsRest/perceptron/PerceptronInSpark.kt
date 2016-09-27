@@ -4,6 +4,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.feature.StringIndexerModel
+import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Row

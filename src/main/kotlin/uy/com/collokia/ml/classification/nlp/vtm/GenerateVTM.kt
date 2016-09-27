@@ -38,7 +38,7 @@ val TAG_VTM_VOC_SIZE = 400
 
 fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row> {
 
-    val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol("categoryIndex").fit(textDataFrame)
+    val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol).fit(textDataFrame)
     println(indexer.labels().joinToString("\t"))
 
     val indexedTextDataFrame = indexer.transform(textDataFrame)
@@ -179,12 +179,12 @@ fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
 
 fun convertDataFrameToLabeledPoints(data: Dataset<Row>): JavaRDD<LabeledPoint> {
     val converter = IndexToString()
-            .setInputCol("categoryIndex")
+            .setInputCol(labelIndexCol)
             .setOutputCol("originalCategory")
     val converted = converter.transform(data)
 
 
-    val featureData = converted.select("normIdfFeatures", "categoryIndex", "originalCategory")
+    val featureData = converted.select(featureCol, labelIndexCol, "originalCategory")
 
     val labeledDataPoints = featureData.toJavaRDD().map({ feature ->
         val features = feature.getAs<SparseVector>(0)

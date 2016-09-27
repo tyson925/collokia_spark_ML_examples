@@ -46,8 +46,7 @@ class OneVsRestInSpark() : Serializable {
 
         val lr = LogisticRegression().setMaxIter(300).setTol(1E-6).setFitIntercept(true).setStandardization(true)
 
-
-        //val nb = NaiveBayes().setSmoothing(true)
+        //val nb = NaiveBayes()
 
         val oneVsRest = OneVsRest().setClassifier(dt)
                 .setFeaturesCol(featureCol)

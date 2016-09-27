@@ -67,7 +67,7 @@ fun parseCorpus(sparkSession: SparkSession, corpusInRaw: JavaRDD<String>, subTop
         filterToOneCategory(corpusInRaw, subTopic)
     } ?: filterToTopCategories(corpusInRaw)
 
-    corpusInRaw.unpersist()
+
 
     return documentRddToDF(sparkSession, corpusRow)
 }

@@ -65,7 +65,3 @@ class SVMSpark() : Serializable {
     }
 
 }
-
-fun main(args: Array<String>) {
-
-}

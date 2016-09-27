@@ -128,18 +128,19 @@ fun evaluateModelConfusionMTX(ovrModel: OneVsRestModel, test: Dataset<Row>) {
 fun evaluateModel(ovrModel: OneVsRestModel, test: Dataset<Row>, indexer: StringIndexerModel): MulticlassMetrics {
     // Convert indexed labels back to original labels.
     val labelConverter = IndexToString()
-            .setInputCol("prediction")
+            .setInputCol(predictionCol)
             .setOutputCol("predictedLabel")
             .setLabels(indexer.labels())
 
 
     val predicatePipeline = Pipeline().setStages(arrayOf(ovrModel, labelConverter))
 
-    val predictions = predicatePipeline.fit(test).transform(test)
+    val cachedTest = test.cache()
+    val predictions = predicatePipeline.fit(cachedTest).transform(cachedTest)
 
     predictions.show(3)
     // evaluate the model
-    val predictionsAndLabels = predictions.select("prediction", labelIndexCol).toJavaRDD().map({ row ->
+    val predictionsAndLabels = predictions.select(predictionCol, labelIndexCol).toJavaRDD().map({ row ->
         Tuple2(row.getDouble(0) as Any, row.getDouble(1) as Any)
     })
 
@@ -152,8 +153,8 @@ fun evaluateModel10Fold(pipeline : Pipeline, corpus: Dataset<Row>){
     val paramGrid = ParamGridBuilder().build() // No parameter search
 
     val evaluator = MulticlassClassificationEvaluator()
-            .setLabelCol("label")
-            .setPredictionCol("prediction")
+            .setLabelCol(labelIndexCol)
+            .setPredictionCol(predictionCol)
             // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
             .setMetricName("f1")
 

@@ -14,14 +14,11 @@ import org.apache.spark.sql.SparkSession
 import org.slf4j.LoggerFactory
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.util.DocumentRow
-import uy.com.collokia.util.VTM_PIPELINE
+import uy.com.collokia.util.*
 import java.io.File
 import java.io.Serializable
 import java.util.*
 import uy.com.collokia.util.readData.documentRddToDF
-import uy.com.collokia.util.LABELS
-import uy.com.collokia.util.OVR_MODEL
 
 data class Article(val id: String, val content: String, val title: String, val labels: List<String>, val date: String, val category: String) : Serializable
 
@@ -67,7 +64,7 @@ class PredicateModel() : Serializable {
         val indexer = StringIndexerModel.load(LABELS)
 
         val labelConverter = IndexToString()
-                .setInputCol("prediction")
+                .setInputCol(predictionCol)
                 .setOutputCol("predictedLabel")
                 .setLabels(indexer.labels())
 

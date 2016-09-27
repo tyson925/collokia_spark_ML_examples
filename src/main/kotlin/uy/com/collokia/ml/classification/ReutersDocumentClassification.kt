@@ -24,6 +24,7 @@ import uy.com.collokia.ml.rdf.RandomForestInSpark
 import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.util.ClassifierResults
 import uy.com.collokia.util.REUTERS_DATA
+import uy.com.collokia.util.featureCol
 import java.io.Serializable
 import uy.com.collokia.util.readData.parseCorpus
 
@@ -33,8 +34,8 @@ import uy.com.collokia.util.readData.parseCorpus
         val MAPPER = jacksonObjectMapper()
         val topCategories = listOf("ship", "grain", "money-fx", "corn", "trade", "crude", "earn", "wheat", "acq", "interest")
         //val topCategories = listOf("earn", "acq")
-        val featureCol = "normIdfFeatures"
-        val labelIndexCol = "categoryIndex"
+        //val featureCol = "normIdfFeatures"
+        //val labelIndexCol = "categoryIndex"
 
         @JvmStatic fun main(args : Array<String>){
             val docClassifier = ReutersDocumentClassification()
@@ -139,7 +140,7 @@ import uy.com.collokia.util.readData.parseCorpus
 
             hashedTrainDF.unpersist()
 
-            val normalizer = Normalizer().setInputCol(idfModel.outputCol).setOutputCol("normIdfFeatures").setP(1.0)
+            val normalizer = Normalizer().setInputCol(idfModel.outputCol).setOutputCol(featureCol).setP(1.0)
             //val normalizer = Normalizer().setInputCol("features").setOutputCol("normIdfFeatures").setP(1.0)
 
             val normTrainTfIdfDF = normalizer.transform(trainTfIdfDF)

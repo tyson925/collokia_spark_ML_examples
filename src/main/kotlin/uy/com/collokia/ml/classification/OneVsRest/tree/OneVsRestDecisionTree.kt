@@ -40,7 +40,8 @@ class OneVsRestDecisionTree() : Serializable {
         val cachedTrain = train.cache()
         val cachedTest = test.cache()
         val evaluations =
-                listOf("gini", "entropy").flatMap { impurity ->
+                //listOf("gini", "entropy").flatMap { impurity ->
+                listOf("entropy").flatMap { impurity ->
                     intArrayOf(10, 20, 30).flatMap { depth ->
                         intArrayOf(40, 300).map { bins ->
 
@@ -76,11 +77,9 @@ class OneVsRestDecisionTree() : Serializable {
 
     fun evaluate10Fold(bestProperties : DecisionTreeProperties, corpus : Dataset<Row>){
 
-        val decisionTreeClassifier = DecisionTreeClassifier().setImpurity(bestProperties.impurity)
-                .setMaxDepth(bestProperties.maxDepth)
-                .setMaxBins(bestProperties.bins)
-
-        val pipeline = Pipeline().setStages(arrayOf(decisionTreeClassifier))
+        val oneVsRestClassifier = constructDecisionTreeClassifier(bestProperties.impurity,
+                bestProperties.maxDepth,bestProperties.bins)
+        val pipeline = Pipeline().setStages(arrayOf(oneVsRestClassifier))
 
         evaluateModel10Fold(pipeline, corpus)
     }
@@ -114,7 +113,10 @@ class OneVsRestDecisionTree() : Serializable {
                 generateVtm(jsc, sparkSession)
             }
 
-            val bestProperties = evaluateOneVsRestDecisionTrees(dataset)
+            dataset.show(3,false)
+            //val bestProperties = evaluateOneVsRestDecisionTrees(dataset)
+
+            val bestProperties = DecisionTreeProperties("entropy",30,300)
             evaluate10Fold(bestProperties,dataset)
 
         }

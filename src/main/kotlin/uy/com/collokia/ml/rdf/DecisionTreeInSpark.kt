@@ -28,13 +28,10 @@ import uy.com.collokia.common.utils.machineLearning.printMulticlassMetrics
 import uy.com.collokia.common.utils.machineLearning.randomClassifier
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.scala.ClassTagger
-import uy.com.collokia.util.REUTERS_DATA
-import uy.com.collokia.util.featureCol
-import uy.com.collokia.util.labelIndexCol
 import java.io.Serializable
 import uy.com.collokia.ml.classification.nlp.vtm.*
+import uy.com.collokia.util.*
 import uy.com.collokia.util.readData.parseCorpus
-import uy.com.collokia.util.DecisionTreeProperties
 
 
 class DecisionTreeInSpark() : Serializable {
@@ -64,7 +61,7 @@ class DecisionTreeInSpark() : Serializable {
                 .build()
 
 
-        val evaluator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol("prediction")
+        val evaluator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol(predictionCol)
 
         // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
         //evaulator.set("metricName", "f1(1.0)")
@@ -89,7 +86,6 @@ class DecisionTreeInSpark() : Serializable {
         }.sortedByDescending { stat -> stat._2 }
 
         println(paramsToScore.joinToString("\n"))
-
 
     }
 
