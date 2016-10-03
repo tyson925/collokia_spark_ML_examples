@@ -1,10 +1,6 @@
 package uy.com.collokia.util
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.Encoders
-import org.apache.spark.sql.SparkSession
 import java.io.Serializable
 import java.text.DecimalFormat
 
@@ -30,9 +26,13 @@ val predictionCol = "prediction"
 val OVR_MODEL = "./data/model/ovrDectisonTree"
 val LABELS = "./data/model/labelIndexer"
 
-data class DecisionTreeProperties(val impurity : String,val maxDepth : Int,val bins :Int) : Serializable
-data class LogisticRegressionProperties(val numIterations : Int,val stepSize : Double,val fitIntercept: Boolean,val standardization : Boolean) : Serializable
-data class NaiveBayesProperties(val modelType : String, val smoothing : Double) : Serializable
+data class DecisionTreeProperties(val impurity: String, val maxDepth: Int, val bins: Int) : Serializable
+data class LogisticRegressionProperties(val numIterations: Int, val stepSize: Double, val fitIntercept: Boolean,
+                                        val standardization: Boolean,
+                                        val regParam: Double,
+                                        val elasticNetParam: Double) : Serializable
+
+data class NaiveBayesProperties(val modelType: String, val smoothing: Double) : Serializable
 
 
 data class EvaluationMetrics(val category: String, val fMeasure: Double, val precision: Double, val recall: Double) : scala.Serializable {

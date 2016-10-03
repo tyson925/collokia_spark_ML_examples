@@ -25,34 +25,47 @@ class OneVsRestLogReg() : Serializable {
 
     companion object {
 
-        @JvmStatic fun main(args : Array<String>){
+        @JvmStatic fun main(args: Array<String>) {
             val oneVsRest = OneVsRestLogReg()
             oneVsRest.runOnSpark()
         }
     }
 
 
-    fun evaluateOneVsRestLogReg(dataset: Dataset<Row>) : LogisticRegressionProperties{
+    fun evaluateOneVsRestLogReg(dataset: Dataset<Row>): LogisticRegressionProperties {
         val (train, test) = dataset.randomSplit(doubleArrayOf(0.9, 0.1))
         val indexer = StringIndexerModel.load(LABELS)
 
         val cachedTrain = train.cache()
         val cachedTest = test.cache()
 
-        val evaluations = listOf(100, 200, 300, 600).flatMap { numIterations ->
-            listOf(1E-5, 1E-6, 1E-7).flatMap { stepSize ->
-                listOf(true, false).flatMap { fitIntercept ->
-                    listOf(true, false).map { standardization ->
-                        val oneVsRest = constructLogRegClassifier(numIterations,stepSize,fitIntercept,standardization)
-                        val ovrModel = oneVsRest.fit(cachedTrain)
-                        val metrics = evaluateModel(ovrModel, cachedTest, indexer)
-                        val properties = LogisticRegressionProperties(numIterations, stepSize, fitIntercept, standardization)
-                        println("${metrics.weightedFMeasure()}\t$properties")
-                        Tuple2(properties, metrics)
+        val evaluations =
+                //listOf(100, 200, 300, 600).flatMap { numIterations ->
+                listOf(600).flatMap { numIterations ->
+                    //listOf(1E-5, 1E-6, 1E-7).flatMap { stepSize ->
+                    listOf(1E-5).flatMap { stepSize ->
+                        listOf(0.01).flatMap { regressionParam ->
+                            listOf(0.01, 0.1, 0.3, 0.5, 0.8, 1.0).flatMap { elasticNetParam ->
+                            //listOf(true, false).flatMap { fitIntercept ->
+                            listOf(true).flatMap { fitIntercept ->
+                                listOf(true).map { standardization ->
+
+
+                                        val oneVsRest = constructLogRegClassifier(numIterations, stepSize, fitIntercept, standardization,
+                                                regressionParam, elasticNetParam)
+                                        val ovrModel = oneVsRest.fit(cachedTrain)
+                                        val metrics = evaluateModel(ovrModel, cachedTest, indexer)
+
+                                        val properties = LogisticRegressionProperties(numIterations, stepSize, fitIntercept, standardization,
+                                                regressionParam, elasticNetParam)
+                                        println("${metrics.weightedFMeasure()}\t$properties")
+                                        Tuple2(properties, metrics)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        }
 
         val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
             Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
@@ -65,7 +78,8 @@ class OneVsRestLogReg() : Serializable {
         val oneVsRest = constructLogRegClassifier(bestLogRegProperties.numIterations,
                 bestLogRegProperties.stepSize,
                 bestLogRegProperties.fitIntercept,
-                bestLogRegProperties.standardization)
+                bestLogRegProperties.standardization,
+                bestLogRegProperties.regParam)
 
         val ovrModel = oneVsRest.fit(cachedTrain)
 
@@ -74,12 +88,13 @@ class OneVsRestLogReg() : Serializable {
         return bestLogRegProperties
     }
 
-    fun evaluate10Fold(bestProperties : LogisticRegressionProperties, corpus : Dataset<Row>){
+    fun evaluate10Fold(bestProperties: LogisticRegressionProperties, corpus: Dataset<Row>) {
 
         val logRegClassifier = constructLogRegClassifier(bestProperties.numIterations,
                 bestProperties.stepSize,
                 bestProperties.fitIntercept,
-                bestProperties.standardization)
+                bestProperties.standardization,
+                bestProperties.regParam)
 
         val pipeline = Pipeline().setStages(arrayOf(logRegClassifier))
 
@@ -87,12 +102,23 @@ class OneVsRestLogReg() : Serializable {
 
     }
 
-    private fun constructLogRegClassifier(numIterations : Int,stepSize : Double,fitIntercept : Boolean,standardization : Boolean) : OneVsRest {
+    private fun constructLogRegClassifier(numIterations: Int,
+                                          stepSize: Double,
+                                          fitIntercept: Boolean,
+                                          standardization: Boolean,
+                                          regParam: Double,
+                                          elasticNetParam: Double = 0.0): OneVsRest {
+
         val logisticRegression = LogisticRegression()
                 .setMaxIter(numIterations)
                 .setTol(stepSize)
                 .setFitIntercept(fitIntercept)
                 .setStandardization(standardization)
+                .setRegParam(regParam)
+
+        if (elasticNetParam != 0.0) {
+            logisticRegression.elasticNetParam = elasticNetParam
+        }
 
         val oneVsRest = OneVsRest().setClassifier(logisticRegression)
                 .setFeaturesCol(featureCol)
@@ -119,8 +145,9 @@ class OneVsRestLogReg() : Serializable {
             }
 
             //val bestProperties = evaluateOneVsRestLogReg(dataset)
-            val bestProperties = LogisticRegressionProperties(600,1.0E-7,true,false)
-            evaluate10Fold(bestProperties,dataset)
+            val bestProperties = LogisticRegressionProperties(600, 1.0E-7, true, false, 0.01,0.1)
+            //evaluateOneVsRestLogReg(dataset)
+            evaluate10Fold(bestProperties, dataset)
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")

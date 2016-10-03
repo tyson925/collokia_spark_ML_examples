@@ -17,7 +17,6 @@ import uy.com.collokia.common.utils.machineLearning.printMatrix
 import uy.com.collokia.ml.classification.nlp.vtm.*
 import uy.com.collokia.util.*
 import uy.com.collokia.util.readData.readDzoneFromEs
-import java.io.Serializable
 import java.text.DecimalFormat
 
 

@@ -60,10 +60,10 @@ fun extractFeaturesFromCorpus(textDataFrame: Dataset<DocumentRow>): Dataset<Row>
     return filteredWordsDataFrame
 }
 
-fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
+fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int, inputCol : String = DocumentRow::content.name): Pipeline {
     val indexer = StringIndexer().setInputCol(DocumentRow::category.name).setOutputCol(labelIndexCol)
 
-    val tokenizer = RegexTokenizer().setInputCol(DocumentRow::content.name).setOutputCol(tokenizerOutputCol)
+    val tokenizer = RegexTokenizer().setInputCol(inputCol).setOutputCol(tokenizerOutputCol)
             .setMinTokenLength(3)
             .setToLowercase(false)
             .setPattern("\\w+")
@@ -103,7 +103,7 @@ fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
     return pipeline
 }
 
-fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pipeline {
+fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int, inputCol: String = DocumentRow::title.name): Pipeline {
 
     val stopwordsApplied = if (stopwords.size == 0) {
         println("Load default english stopwords...")
@@ -113,7 +113,7 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pi
         stopwords
     }
 
-    val titleTokenizer = RegexTokenizer().setInputCol(DocumentRow::title.name).setOutputCol(titleTokenizerOutputCol)
+    val titleTokenizer = RegexTokenizer().setInputCol(inputCol).setOutputCol(titleTokenizerOutputCol)
             .setMinTokenLength(3)
             .setToLowercase(true)
             .setPattern("\\w+")
@@ -147,8 +147,8 @@ fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int): Pi
     return pipeline
 }
 
-fun constructTagVtmDataPipeline(vocabSize : Int): Pipeline {
-    val tagTokenizer = RegexTokenizer().setInputCol(DocumentRow::labels.name).setOutputCol(tagTokenizerOutputCol)
+fun constructTagVtmDataPipeline(vocabSize : Int, inputCol : String = DocumentRow::labels.name): Pipeline {
+    val tagTokenizer = RegexTokenizer().setInputCol(inputCol).setOutputCol(tagTokenizerOutputCol)
             .setMinTokenLength(2)
             .setToLowercase(true)
             .setPattern("\\w+")
