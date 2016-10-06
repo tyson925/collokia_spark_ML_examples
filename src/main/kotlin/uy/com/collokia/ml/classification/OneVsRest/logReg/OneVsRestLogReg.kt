@@ -44,8 +44,9 @@ class OneVsRestLogReg() : Serializable {
                 listOf(600).flatMap { numIterations ->
                     //listOf(1E-5, 1E-6, 1E-7).flatMap { stepSize ->
                     listOf(1E-5).flatMap { stepSize ->
-                        listOf(0.01).flatMap { regressionParam ->
-                            listOf(0.01, 0.1, 0.3, 0.5, 0.8, 1.0).flatMap { elasticNetParam ->
+                        listOf(0.01,0.1).flatMap { regressionParam ->
+                            //listOf(0.01, 0.1, 0.3, 0.5, 0.8, 1.0).flatMap { elasticNetParam ->
+                            listOf(0.0).flatMap { elasticNetParam ->
                             //listOf(true, false).flatMap { fitIntercept ->
                             listOf(true).flatMap { fitIntercept ->
                                 listOf(true).map { standardization ->
@@ -141,13 +142,16 @@ class OneVsRestLogReg() : Serializable {
             val dataset = if (File(corpusFileName).exists()) {
                 sparkSession.read().load(corpusFileName)
             } else {
-                generateVtm(jsc, sparkSession)
+                val corpus = generateVtm(jsc, sparkSession)
+                corpus.write().save(corpusFileName.substringBeforeLast("."))
+                corpus
             }
 
             //val bestProperties = evaluateOneVsRestLogReg(dataset)
             val bestProperties = LogisticRegressionProperties(600, 1.0E-7, true, false, 0.01,0.1)
-            //evaluateOneVsRestLogReg(dataset)
-            evaluate10Fold(bestProperties, dataset)
+            dataset.show(10,false)
+            evaluateOneVsRestLogReg(dataset)
+            //evaluate10Fold(bestProperties, dataset)
 
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")

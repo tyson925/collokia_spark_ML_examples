@@ -14,8 +14,8 @@ import kotlin.properties.Delegates
 
 public class ConcatWSTransformer : Transformer {
 
-    var inputColNames: Array<String> by Delegates.notNull<Array<String>>()
-    var outputColName : String by Delegates.notNull<String>()
+    var inputColNames: Array<String>
+    var outputColName : String
 
     constructor() {
         inputColNames = arrayOf("content_1","content_2")
@@ -55,7 +55,6 @@ public class ConcatWSTransformer : Transformer {
         return dataset?.let {
             val outputSchema = transformSchema(dataset.schema())
             val metadata = outputSchema.apply(outputColName).metadata()
-
 
             dataset.select(dataset.col("*"),
                     functions.split(functions.concat_ws(" ",dataset.col(inputColNames[0]),dataset.col(inputColNames[1]))," ").`as`(outputColName))

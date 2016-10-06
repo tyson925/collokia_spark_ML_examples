@@ -20,7 +20,7 @@ import uy.com.collokia.util.readData.readDzoneFromEs
 import java.text.DecimalFormat
 
 
-val corpusFileName = "./data/classification/dzone/dzone.parquet"
+val corpusFileName = "./data/classification/dzone_noTags/dzone.parquet"
 val formatter = DecimalFormat("#0.00")
 
 
@@ -81,7 +81,8 @@ fun generateVtm(jsc: JavaSparkContext, sparkSession: SparkSession): Dataset<Row>
     val tagNormalizer = vtmTagPipelineModel.stages().last() as StandardScalerModel
 
     //VectorAssembler().
-    val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol, tagNormalizer.outputCol))
+    //val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol, tagNormalizer.outputCol))
+    val assembler = VectorAssembler().setInputCols(arrayOf(contentScaler.outputCol, titleNormalizer.outputCol))
             .setOutputCol(featureCol)
 
     if (deleteIfExists(VTM_PIPELINE)) {
