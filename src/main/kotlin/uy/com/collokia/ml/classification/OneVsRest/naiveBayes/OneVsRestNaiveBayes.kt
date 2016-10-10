@@ -11,7 +11,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.common.utils.formatterToTimePrint
-import uy.com.collokia.common.utils.machineLearning.printMulticlassMetrics
+import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
 import uy.com.collokia.ml.classification.OneVsRest.evaluateModel
@@ -58,7 +58,7 @@ class OneVsRestNaiveBayes() : Serializable {
         }
 
         val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
-            Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
+            Tuple2(metricsData._1, printMultiClassMetrics(metricsData._2))
         }
 
         println(sortedEvaluations.joinToString("\n"))

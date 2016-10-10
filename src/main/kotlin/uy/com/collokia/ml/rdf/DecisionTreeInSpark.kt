@@ -22,9 +22,9 @@ import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
-import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateDecisionTree
-import uy.com.collokia.common.utils.machineLearning.printMulticlassMetrics
+import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
 import uy.com.collokia.common.utils.machineLearning.randomClassifier
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.scala.ClassTagger
@@ -118,7 +118,7 @@ class DecisionTreeInSpark() : Serializable {
         println("evaulate decision tree model...")
         val testPrediction = predicateDecisionTree(model, cvData)
 
-        return evaulateAndPrintPrediction(numClasses,testPrediction)
+        return evaluateAndPrintPrediction(numClasses,testPrediction)
     }
 
     fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
@@ -144,7 +144,7 @@ class DecisionTreeInSpark() : Serializable {
                 }
 
         val sortedEvaluations = evaluations.sortedBy({ metricsData -> metricsData._2.fMeasure(1.0) }).reversed().map { metricsData ->
-            Tuple2(metricsData._1, printMulticlassMetrics(metricsData._2))
+            Tuple2(metricsData._1, printMultiClassMetrics(metricsData._2))
         }
 
         println(sortedEvaluations.joinToString("\n"))

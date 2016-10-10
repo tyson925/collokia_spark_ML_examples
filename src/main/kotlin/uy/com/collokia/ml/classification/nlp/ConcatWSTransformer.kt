@@ -65,8 +65,9 @@ public class ConcatWSTransformer : Transformer {
     override fun transformSchema(schema: StructType?): StructType {
 
         val inputType = schema?.apply(schema.fieldIndex(inputColNames[0]))
-        val inputTypeMetaData = inputType?.metadata()
-        val refType = DataTypes.createArrayType(DataTypes.StringType).javaClass
+
+        val inputTypeMetaData = inputType?.dataType()
+        val refType = DataTypes.createArrayType(DataTypes.StringType)
 
         if (inputTypeMetaData is ArrayType){
             println("Input type must be ArrayType(StringType) but got $inputTypeMetaData.")

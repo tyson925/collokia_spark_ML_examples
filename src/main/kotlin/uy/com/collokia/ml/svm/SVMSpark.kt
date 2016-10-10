@@ -7,7 +7,7 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.util.MLUtils
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
-import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
 import java.io.Serializable
@@ -44,7 +44,7 @@ class SVMSpark() : Serializable {
         println("evaulate decision tree model...")
 
         val testPrediction = predicateMLModel(model, cvData)
-        val FMeasure = evaulateAndPrintPrediction(numClasses,testPrediction)
+        val FMeasure = evaluateAndPrintPrediction(numClasses,testPrediction)
 
 /*// Clear the default threshold.
         model.clearThreshold()

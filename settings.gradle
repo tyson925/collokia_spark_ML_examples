@@ -17,5 +17,3 @@ include 'services:webservice'
 */
 
 rootProject.name = 'collokia_spark_ML_examples'
-//include(':collokia-stanford-CoreNLP')
-//project(':collokia-stanford-CoreNLP').projectDir = new File(settingsDir, '../collokia-stanford-CoreNLP')

@@ -11,7 +11,7 @@ import org.apache.spark.sql.SparkSession
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
-import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
@@ -62,7 +62,7 @@ class SVMInSpark() : Serializable {
         println("evaulate decision tree model...")
 
         val testPrediction = predicateMLModel(model, cvData)
-        val FMeasure = evaulateAndPrintPrediction(numClasses, testPrediction)
+        val FMeasure = evaluateAndPrintPrediction(numClasses, testPrediction)
         return FMeasure
     }
 

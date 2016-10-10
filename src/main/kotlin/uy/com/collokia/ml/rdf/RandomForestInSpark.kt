@@ -15,7 +15,7 @@ import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
-import uy.com.collokia.common.utils.machineLearning.evaulateAndPrintPrediction
+import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateRandomForest
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.scala.ClassTagger
@@ -52,7 +52,7 @@ class RandomForestInSpark(){
         println("evaulate random forest model...")
         val testPrediction = predicateRandomForest(forestModel, cvData)
 
-        return evaulateAndPrintPrediction(numClasses,testPrediction)
+        return evaluateAndPrintPrediction(numClasses,testPrediction)
     }
 
     fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, numClasses: Int, categoricalFeatureInfo : Map<Int, Int>,
