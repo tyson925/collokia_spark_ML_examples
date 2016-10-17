@@ -18,7 +18,7 @@ class LogisticRegressionInSpark(){
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
-            println("number of fold:\t${i}")
+            println("number of fold:\t$i")
             val Fmeasure = evaluateSimpleLogReg(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }

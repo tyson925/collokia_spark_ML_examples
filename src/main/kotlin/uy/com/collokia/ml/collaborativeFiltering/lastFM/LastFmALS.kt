@@ -17,6 +17,8 @@ import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.closeSpark
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import java.util.*
 
 
@@ -268,12 +270,21 @@ class LastFmALS() {
         model.productFeatures().unpersist(true)
     }
 
+    companion object {
+        @JvmStatic fun main(args: Array<String>) {
+            BasicConfigurator.configure()
+            val lastFmTest = LastFmALS()
+            lastFmTest.run()
+        }
+
+    }
+
 
     fun run() {
         val time = measureTimeInMillis {
-            val sparkConf = SparkConf().setAppName("LastFMRecommendation").setMaster("local[6]")
-            //sparkConf.set("spark.driver.maxResultSize", "2g")
-            val jsc = JavaSparkContext(sparkConf)
+
+
+            val jsc = getLocalSparkContext("LastFMRecommendation")
             val rootDirectory = "./../ES/testData/profiledata_06-May-2005/"
             val rawUserArtistData = jsc.textFile(rootDirectory + "user_artist_data.txt")
             val rawArtistData = jsc.textFile(rootDirectory + "artist_data.txt")
@@ -285,6 +296,7 @@ class LastFmALS() {
             //model(jsc, rawUserArtistData, rawArtistData, rawArtistAlias)
             //evaluate(jsc, rawUserArtistData, rawArtistAlias)
             recommend(jsc, rawUserArtistData, rawArtistData, rawArtistAlias)
+            closeSpark(jsc)
 
 
         }
@@ -292,11 +304,6 @@ class LastFmALS() {
     }
 }
 
-fun main(args: Array<String>) {
-    BasicConfigurator.configure()
-    val lastFmTest = LastFmALS()
-    lastFmTest.run()
-}
 
 
 

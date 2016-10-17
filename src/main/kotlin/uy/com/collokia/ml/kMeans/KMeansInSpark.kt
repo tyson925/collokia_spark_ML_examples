@@ -15,15 +15,18 @@ import org.apache.spark.mllib.linalg.Vectors
 import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
+import uy.com.collokia.common.utils.nlp.cleanText
+import uy.com.collokia.common.utils.rdd.closeSpark
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import java.io.Serializable
 
 
-public class KMeansInSpark() : Serializable {
+class KMeansInSpark() : Serializable {
 
-    public fun runKMeans() {
-        val sparkConf = SparkConf().setAppName("KMeans").setMaster("local[6]")
+    fun runKMeans() {
 
-        val jsc = JavaSparkContext(sparkConf)
+
+        val jsc = getLocalSparkContext("K means")
 
         val rawData = jsc.textFile("./testData/KMeans/kddcup.data_10_percent.gz").cache()
         //clusteringTake0(rawData)
@@ -32,9 +35,10 @@ public class KMeansInSpark() : Serializable {
         //clusteringTake3(rawData)
         //clusteringTake4(rawData)
         anomalies(rawData)
+        closeSpark(jsc)
     }
 
-    public fun readData(rawData: JavaRDD<String>): JavaPairRDD<String, Vector> {
+    fun readData(rawData: JavaRDD<String>): JavaPairRDD<String, Vector> {
         val labelsAndData = rawData.mapToPair { line ->
             val buffer = line.split(',').toMutableList()
 
@@ -49,7 +53,7 @@ public class KMeansInSpark() : Serializable {
 
     }
 
-    public fun clusteringTake0(rawData: JavaRDD<String>) {
+    fun clusteringTake0(rawData: JavaRDD<String>) {
 
         println(rawData.map({ line -> line.split(',').last() }).countByValue().toList().sortedBy({ value -> value.second }).reversed().joinToString("\n"))
 
@@ -81,33 +85,33 @@ public class KMeansInSpark() : Serializable {
 
     }
 
-    public fun distance(a: Vector, b: Vector): Double {
+    fun distance(a: Vector, b: Vector): Double {
         return Math.sqrt(a.toArray().zip(b.toArray()).map({ p -> p.first - p.second }).map({ d -> d * d }).sum())
     }
 
-    public fun distToCentroid(datum: Vector, model: KMeansModel): Double {
+    fun distToCentroid(datum: Vector, model: KMeansModel): Double {
         val cluster = model.predict(datum)
         val centroid = model.clusterCenters()[cluster]
         return distance(centroid, datum)
     }
 
-    public fun clusteringScore(data: JavaRDD<Vector>, k: Int): Double {
+    fun clusteringScore(data: JavaRDD<Vector>, k: Int): Double {
         val kmeans = KMeans()
-        kmeans.setK(k)
+        kmeans.k = k
         val model = kmeans.run(data.rdd())
         return data.mapToDouble<Double>(DoubleFunction { datum -> distToCentroid(datum, model) }).mean()
     }
 
-    public fun clusteringScore2(data: JavaRDD<Vector>, k: Int): Double {
+    fun clusteringScore2(data: JavaRDD<Vector>, k: Int): Double {
         val kmeans = KMeans()
-        kmeans.setK(k)
-        kmeans.setRuns(10)
-        kmeans.setEpsilon(1.0e-6)
+        kmeans.k = k
+        kmeans.runs = 10
+        kmeans.epsilon = 1.0e-6
         val model = kmeans.run(data.rdd())
         return data.mapToDouble<Double>(DoubleFunction { datum -> distToCentroid(datum, model) }).mean()
     }
 
-    public fun clusteringTake1(rawData: JavaRDD<String>) {
+    fun clusteringTake1(rawData: JavaRDD<String>) {
 
         val data = readData(rawData).values().cache()
 
@@ -122,7 +126,7 @@ public class KMeansInSpark() : Serializable {
 
     // Clustering, Take 2
 
-    public fun buildNormalizationFunction(data: JavaRDD<Vector>): (Vector) -> Vector {
+    fun buildNormalizationFunction(data: JavaRDD<Vector>): (Vector) -> Vector {
         val dataAsArray = data.map({ vector -> vector.toArray() })
         val numCols = dataAsArray.first().size
         val n = dataAsArray.count()
@@ -152,7 +156,7 @@ public class KMeansInSpark() : Serializable {
 
     }
 
-    public fun clusteringTake2(rawData: JavaRDD<String>) {
+    fun clusteringTake2(rawData: JavaRDD<String>) {
         val data = readData(rawData).values().cache()
 
         val normalizedData = data.map(buildNormalizationFunction(data)).cache()
@@ -167,7 +171,7 @@ public class KMeansInSpark() : Serializable {
 
     // Clustering, Take 3
 
-    public fun buildCategoricalAndLabelFunction(rawData: JavaRDD<String>): (String) -> Tuple2<String, Vector> {
+    fun buildCategoricalAndLabelFunction(rawData: JavaRDD<String>): (String) -> Tuple2<String, Vector> {
         val splitData = rawData.map({ line -> line.split(',') })
 
         val index = (0..splitData.count().toInt() - 1).map { i ->
@@ -201,7 +205,7 @@ public class KMeansInSpark() : Serializable {
         }
     }
 
-    public fun clusteringTake3(rawData: JavaRDD<String>) {
+    fun clusteringTake3(rawData: JavaRDD<String>) {
         val parseFunction = buildCategoricalAndLabelFunction(rawData)
         val data = rawData.mapToPair(parseFunction).values()
         val normalizedData = data.map(buildNormalizationFunction(data)).cache()
@@ -213,7 +217,7 @@ public class KMeansInSpark() : Serializable {
         normalizedData.unpersist()
     }
 
-    public fun entropy(counts: Iterable<Int>): Double {
+    fun entropy(counts: Iterable<Int>): Double {
         val values = counts.filter({ it -> it > 0 })
         val n = values.sum().toDouble()
         return values.map { v ->
@@ -222,11 +226,11 @@ public class KMeansInSpark() : Serializable {
         }.sum()
     }
 
-    public fun clusteringScore3(normalizedLabelsAndData: JavaPairRDD<String, Vector>, k: Int): Double {
+    fun clusteringScore3(normalizedLabelsAndData: JavaPairRDD<String, Vector>, k: Int): Double {
         val kmeans = KMeans()
-        kmeans.setK(k)
-        kmeans.setRuns(10)
-        kmeans.setEpsilon(1.0e-6)
+        kmeans.k = k
+        kmeans.runs = 10
+        kmeans.epsilon = 1.0e-6
 
         val model = kmeans.run(normalizedLabelsAndData.values().rdd().cache())
 
@@ -251,7 +255,7 @@ public class KMeansInSpark() : Serializable {
         return labelCounts.map({ m -> (m.sum() * entropy(m)) }).collect().sum() / n
     }
 
-    public fun clusteringTake4(rawData: JavaRDD<String>) {
+    fun clusteringTake4(rawData: JavaRDD<String>) {
         val parseFunction = buildCategoricalAndLabelFunction(rawData)
         val labelsAndData = rawData.mapToPair(parseFunction)
         val normalizedLabelsAndData =
@@ -266,14 +270,14 @@ public class KMeansInSpark() : Serializable {
 
     // Detect anomalies
 
-    public fun buildAnomalyDetector(data: JavaRDD<Vector>, normalizeFunction: (Vector) -> Vector ): (Vector) -> Boolean {
+    fun buildAnomalyDetector(data: JavaRDD<Vector>, normalizeFunction: (Vector) -> Vector ): (Vector) -> Boolean {
         val normalizedData = data.map(normalizeFunction)
         normalizedData.cache()
 
         val kmeans =  KMeans()
-        kmeans.setK(150)
-        kmeans.setRuns(10)
-        kmeans.setEpsilon(1.0e-6)
+        kmeans.k = 150
+        kmeans.runs = 10
+        kmeans.epsilon = 1.0e-6
         val model = kmeans.run(normalizedData.rdd())
 
         normalizedData.unpersist()
@@ -286,7 +290,7 @@ public class KMeansInSpark() : Serializable {
         }
     }
 
-    public fun anomalies(rawData: JavaRDD<String>) {
+    fun anomalies(rawData: JavaRDD<String>) {
         val parseFunction = buildCategoricalAndLabelFunction(rawData)
         val originalAndData = rawData.mapToPair({line -> Tuple2(line, parseFunction(line)._2)})
         val data = originalAndData.values()
@@ -303,7 +307,7 @@ public class KMeansInSpark() : Serializable {
 
     }
 
-    public fun zipTest() {
+    fun zipTest() {
         val list1 = listOf(1, 2, 3, 4, 5, 6, 7, 8)
         val list2 = listOf("egy", "ketto", "harom", "negy")
         println(list1.zip(list2))

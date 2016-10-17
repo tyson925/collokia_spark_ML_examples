@@ -1,12 +1,15 @@
 package uy.com.collokia.ml.lsa
 
-import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.mllib.linalg.Vector
+public class LSAInSpark() {
 
-public class LSAInSpark(){
+    companion object {
+        @JvmStatic fun main(args: Array<String>) {
 
-    public fun runLSA(){
+        }
+
+    }
+
+    public fun runLSA() {
 
     }
 
@@ -36,7 +39,4 @@ public class LSAInSpark(){
 }
 
 
-fun main(args: Array<String>) {
-
-}
 

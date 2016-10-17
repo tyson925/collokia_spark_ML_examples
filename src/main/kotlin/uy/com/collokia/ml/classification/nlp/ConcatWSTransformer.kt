@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.StructType
 import java.util.*
 import kotlin.properties.Delegates
 
-public class ConcatWSTransformer : Transformer {
+class ConcatWSTransformer : Transformer {
 
     var inputColNames: Array<String>
     var outputColName : String

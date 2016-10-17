@@ -14,6 +14,8 @@ import scala.Serializable
 import uy.com.collokia.common.utils.deleteIfExists
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.closeSpark
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
 import uy.com.collokia.ml.classification.OneVsRest.evaluateModelConfusionMTX
 import uy.com.collokia.ml.classification.OneVsRest.generateVtm
@@ -31,6 +33,26 @@ class OneVsRestInSpark() : Serializable {
             val ovr = OneVsRestInSpark()
             ovr.runOnSpark()
         }
+    }
+
+    fun runOnSpark() {
+        val time = measureTimeInMillis {
+
+            val jsc = getLocalSparkContext("one vs rest example")
+            val sparkSession = SparkSession.builder().master("local").appName("one vs rest example").orCreate
+
+            val dataset = if (File(corpusFileName).exists()) {
+                sparkSession.read().load(corpusFileName)
+            } else {
+                generateVtm(jsc, sparkSession)
+            }
+            //evaluateOneVsRestDecisionTrees(dataset)
+            evaluateOneVsRest(dataset)
+            //evaluateOneVsRestNaiveBayes(dataset)
+            closeSpark(jsc)
+
+        }
+        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
 
 
@@ -64,28 +86,7 @@ class OneVsRestInSpark() : Serializable {
     }
 
 
-    fun runOnSpark() {
-        val time = measureTimeInMillis {
-            val sparkConf = SparkConf().setAppName("reutersTest").setMaster("local[8]")
-                    .set("es.nodes", "localhost:9200")
-                    .set("es.nodes.discovery", "true")
-                    .set("es.nodes.wan.only", "false")
 
-            val jsc = JavaSparkContext(sparkConf)
-            val sparkSession = SparkSession.builder().master("local").appName("one vs rest example").orCreate
-
-            val dataset = if (File(corpusFileName).exists()) {
-                sparkSession.read().load(corpusFileName)
-            } else {
-                generateVtm(jsc, sparkSession)
-            }
-            //evaluateOneVsRestDecisionTrees(dataset)
-            evaluateOneVsRest(dataset)
-            //evaluateOneVsRestNaiveBayes(dataset)
-
-        }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
-    }
 
 }
 

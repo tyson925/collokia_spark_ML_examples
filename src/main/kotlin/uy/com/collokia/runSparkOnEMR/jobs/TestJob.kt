@@ -3,6 +3,8 @@ package uy.com.collokia.runSparkOnEMR.jobs
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import uy.com.collokia.common.utils.ES_HOST_NAME
+import uy.com.collokia.common.utils.rdd.closeSpark
+import uy.com.collokia.common.utils.rdd.getSparkContextOnEMR
 import java.io.Serializable
 
 class TestJob() : Serializable {
@@ -21,20 +23,10 @@ class TestJob() : Serializable {
         }
 
         @JvmStatic fun main(args: Array<String>) {
-            val sparkConf = SparkConf().setAppName("test")
-                    .set("es.nodes", "${ES_HOST_NAME}").set("es.nodes.discovery", "false")
-                    .set("num-executors", "3")
-                    .set("executor-cores", "4")
-                    .set("executor-memory", "14G")
 
-
-            val jsc = JavaSparkContext(sparkConf)
-
+            val jsc = getSparkContextOnEMR("Test")
             testRun(jsc)
-            jsc.clearJobGroup()
-            jsc.close()
-            jsc.stop()
-            println("exit spark job conf")
+            closeSpark(jsc)
 
         }
     }

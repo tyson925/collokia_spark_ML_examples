@@ -27,6 +27,7 @@ import uy.com.collokia.common.utils.machineLearning.predicateDecisionTree
 import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
 import uy.com.collokia.common.utils.machineLearning.randomClassifier
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import uy.com.collokia.scala.ClassTagger
 import java.io.Serializable
 import uy.com.collokia.ml.classification.nlp.vtm.*
@@ -237,9 +238,9 @@ class DecisionTreeInSpark() : Serializable {
 
     fun runRDF() {
         val time = measureTimeInMillis {
-            val sparkConf = SparkConf().setAppName("DecisionTree").setMaster("local[6]")
 
-            val jsc = JavaSparkContext(sparkConf)
+
+            val jsc = getLocalSparkContext("decision tree")
 
             val rawData = jsc.textFile("./data/DT/covtype.data.gz")
 

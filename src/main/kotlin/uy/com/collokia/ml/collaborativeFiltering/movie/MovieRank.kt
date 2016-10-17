@@ -16,7 +16,9 @@ import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.combineByKeyIntoList
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import uy.com.collokia.scala.scalaClassTag
 import java.io.Serializable
 
@@ -31,6 +33,27 @@ class MovieRank() : Serializable {
             movieRankExample.runMovieRank()
         }
     }
+
+    fun runMovieRank() {
+        val time = measureTimeInMillis {
+            BasicConfigurator.configure()
+
+            val jsc = getLocalSparkContext("Collaborative Filtering Example")
+
+            val path = "./testData/collaborativeFiltering/test.txt"
+            val testData = jsc.textFile(path)
+            val movieRatingPath = "./testData/collaborativeFiltering/sample_movielens_ratings.txt"
+            val movieRatingDataInLine = jsc.textFile(movieRatingPath)
+            val moviePath = "./testData/collaborativeFiltering/sample_movielens_movies.txt"
+            val movieDataInLine = jsc.textFile(moviePath)
+
+            //movieLensALS()
+            evaluateALS(movieRatingDataInLine)
+            closeSpark(jsc)
+        }
+        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+    }
+
 
     fun simpleExampleRun(data: JavaRDD<String>) {
 
@@ -245,24 +268,6 @@ class MovieRank() : Serializable {
     }
 
 
-    fun runMovieRank() {
-        val time = measureTimeInMillis {
-            BasicConfigurator.configure()
-            val sparkConf = SparkConf().setAppName("Collaborative Filtering Example").setMaster("local[6]")
-            val jsc = JavaSparkContext(sparkConf)
-
-            val path = "./testData/collaborativeFiltering/test.txt"
-            val testData = jsc.textFile(path)
-            val movieRatingPath = "./testData/collaborativeFiltering/sample_movielens_ratings.txt"
-            val movieRatingDataInLine = jsc.textFile(movieRatingPath)
-            val moviePath = "./testData/collaborativeFiltering/sample_movielens_movies.txt"
-            val movieDataInLine = jsc.textFile(moviePath)
-
-            //movieLensALS()
-            evaluateALS(movieRatingDataInLine)
-        }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
-    }
 
 }
 

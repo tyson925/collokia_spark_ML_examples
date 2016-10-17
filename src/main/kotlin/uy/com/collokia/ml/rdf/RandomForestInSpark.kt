@@ -18,6 +18,8 @@ import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateRandomForest
 import uy.com.collokia.common.utils.measureTimeInMillis
+import uy.com.collokia.common.utils.rdd.closeSpark
+import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import uy.com.collokia.scala.ClassTagger
 
 
@@ -105,9 +107,9 @@ class RandomForestInSpark(){
 
     fun runTenFoldOnSpark() {
         val time = measureTimeInMillis {
-            val sparkConf = SparkConf().setAppName("RandomForest").setMaster("local[6]")
 
-            val jsc = JavaSparkContext(sparkConf)
+
+            val jsc = getLocalSparkContext("Random forest")
 
             val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
             val sparkSession = SparkSession.builder()
@@ -118,6 +120,8 @@ class RandomForestInSpark(){
             //val (trainDF, testDF) = corpusInRaw.randomSplit(doubleArrayOf(0.9, 0.1))
             //val parsedCorpus = docClass.parseCorpus(sparkSession, corpusInRaw, "ship")
             //evaluate10Fold(parsedCorpus)
+
+            closeSpark(jsc)
         }
         println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
     }
