@@ -28,20 +28,20 @@ import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
 import uy.com.collokia.common.utils.machineLearning.randomClassifier
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.common.utils.rdd.getLocalSparkContext
+import uy.com.collokia.ml.classification.nlp.vtm.constructVTMPipeline
 import uy.com.collokia.scala.ClassTagger
-import java.io.Serializable
-import uy.com.collokia.ml.classification.nlp.vtm.*
 import uy.com.collokia.util.*
 import uy.com.collokia.util.readData.parseCorpus
+import java.io.Serializable
 
 
 class DecisionTreeInSpark() : Serializable {
 
-    fun evaluate10FoldDF(sparkSession : SparkSession, dataInRaw: JavaRDD<String>, category : String) {
+    fun evaluate10FoldDF(sparkSession: SparkSession, dataInRaw: JavaRDD<String>, category: String) {
 
-        val vtmPipeline = constructVTMPipeline(arrayOf(),2000)
+        val vtmPipeline = constructVTMPipeline(arrayOf(), 2000)
 
-        val data = parseCorpus(sparkSession,dataInRaw,category)
+        val data = parseCorpus(sparkSession, dataInRaw, category)
         val impurity = "gini"
         val depth = 10
         val bins = 300
@@ -119,7 +119,7 @@ class DecisionTreeInSpark() : Serializable {
         println("evaulate decision tree model...")
         val testPrediction = predicateDecisionTree(model, cvData)
 
-        return evaluateAndPrintPrediction(numClasses,testPrediction)
+        return evaluateAndPrintPrediction(numClasses, testPrediction)
     }
 
     fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
@@ -270,7 +270,7 @@ class DecisionTreeInSpark() : Serializable {
     }
 
     companion object {
-        @JvmStatic fun main(args: Array<String>){
+        @JvmStatic fun main(args: Array<String>) {
             BasicConfigurator.configure()
             val decisionTree = DecisionTreeInSpark()
             decisionTree.runRDF()
