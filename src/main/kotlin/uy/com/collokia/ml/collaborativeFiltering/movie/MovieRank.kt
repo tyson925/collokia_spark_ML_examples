@@ -109,8 +109,8 @@ class MovieRank() : Serializable {
 
         // Summarize ratings
         val numRatings = movieRatingData.count()
-        val numUsers = movieRatingData.map({ rating -> rating.user() }).distinct().count()
-        val numMovies = movieRatingData.map({ rating -> rating.product() }).distinct().count()
+        val numUsers = movieRatingData.map(Rating::user).distinct().count()
+        val numMovies = movieRatingData.map(Rating::product).distinct().count()
         println("Got $numRatings ratings from $numUsers users on $numMovies movies.")
 
         // Build the model
@@ -132,14 +132,12 @@ class MovieRank() : Serializable {
 
         // Assume that any movie a user rated 3 or higher (which maps to a 1) is a relevant document
 // Compare with top ten most relevant documents
-        val userMovies = binarizedRatings.groupBy({ rating -> rating.user() })
+        val userMovies = binarizedRatings.groupBy(Rating::user)
         val relevantDocuments = userMovies.join(userRecommended).map { predictionsToUsers ->
-            val predictions = predictionsToUsers._2._2.map { prediction -> prediction.product() }.toTypedArray()
+            val predictions = predictionsToUsers._2._2.map(Rating::product).toTypedArray()
             val actual = predictionsToUsers._2._1.filter { actual ->
                 (actual.rating() > 0.0)
-            }.map { item ->
-                item.product()
-            }.toTypedArray()
+            }.map(Rating::product).toTypedArray()
             Tuple2(predictions as Any, actual as Any)
         }
         val metrics = RankingMetrics(relevantDocuments.rdd(), scalaClassTag<Int>())

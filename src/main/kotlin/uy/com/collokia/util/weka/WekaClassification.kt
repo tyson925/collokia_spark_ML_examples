@@ -8,9 +8,9 @@ import java.io.File
 import java.util.*
 
 
-public class WekaClassification() {
+class WekaClassification() {
 
-    public fun evaulateTenFold(data: Instances): Double {
+    fun evaulateTenFold(data: Instances): Double {
 
         val classifier = J48()
 
@@ -27,7 +27,7 @@ public class WekaClassification() {
         return evaulation.fMeasure(1)
     }
 
-    public fun evaulateReuters() {
+    fun evaulateReuters() {
         val results = File("./testData/reuters/arff/").listFiles().filter { file -> file.name.endsWith(".arff") }.map { file ->
             val category = file.name.substringBefore(".arff")
             val data = loadArff(file.canonicalPath)
@@ -37,12 +37,15 @@ public class WekaClassification() {
         println(results.sortedByDescending { value -> value.second }.joinToString("\n"))
     }
 
+    companion object{
+        @JvmStatic fun main(args: Array<String>) {
+
+            //val testData = loadArff("./testData/reuters/arff/acq.arff")
+            val weka = WekaClassification()
+            //weka.evaulateTenFold(testData)
+            weka.evaulateReuters()
+        }
+    }
+
 }
 
-fun main(args: Array<String>) {
-
-    //val testData = loadArff("./testData/reuters/arff/acq.arff")
-    val weka = WekaClassification()
-    //weka.evaulateTenFold(testData)
-    weka.evaulateReuters()
-}

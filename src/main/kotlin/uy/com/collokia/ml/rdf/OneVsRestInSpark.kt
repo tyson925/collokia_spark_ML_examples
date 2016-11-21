@@ -2,8 +2,6 @@
 
 package uy.com.collokia.ml.rdf
 
-import org.apache.spark.SparkConf
-import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.classification.OneVsRest

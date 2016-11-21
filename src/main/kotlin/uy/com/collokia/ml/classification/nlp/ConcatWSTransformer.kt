@@ -10,7 +10,6 @@ import org.apache.spark.sql.types.ArrayType
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql.types.StructType
 import java.util.*
-import kotlin.properties.Delegates
 
 class ConcatWSTransformer : Transformer {
 

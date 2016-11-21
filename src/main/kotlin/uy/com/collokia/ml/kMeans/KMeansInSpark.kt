@@ -3,10 +3,8 @@
 package uy.com.collokia.ml.kMeans
 
 import org.apache.log4j.BasicConfigurator
-import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaPairRDD
 import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.api.java.function.DoubleFunction
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.clustering.KMeansModel
@@ -15,7 +13,6 @@ import org.apache.spark.mllib.linalg.Vectors
 import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
-import uy.com.collokia.common.utils.nlp.cleanText
 import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import java.io.Serializable
@@ -46,7 +43,7 @@ class KMeansInSpark() : Serializable {
             buffer.removeAt(1)
             buffer.removeAt(1)
             val label = buffer.removeAt(buffer.size - 1)
-            val vector = Vectors.dense(buffer.map({ value -> value.toDouble() }).toDoubleArray())
+            val vector = Vectors.dense(buffer.map(String::toDouble).toDoubleArray())
             Tuple2(label, vector)
         }
         return labelsAndData
@@ -64,9 +61,7 @@ class KMeansInSpark() : Serializable {
         val kmeans = KMeans()
         val model = kmeans.run(data.rdd())
 
-        model.clusterCenters().forEach { clusterCenter ->
-            println(clusterCenter)
-        }
+        model.clusterCenters().forEach(::println)
 
         val clusterLabelCount = labelsAndData.mapToPair { labelAndData ->
             val (label, datum) = labelAndData
@@ -127,7 +122,7 @@ class KMeansInSpark() : Serializable {
     // Clustering, Take 2
 
     fun buildNormalizationFunction(data: JavaRDD<Vector>): (Vector) -> Vector {
-        val dataAsArray = data.map({ vector -> vector.toArray() })
+        val dataAsArray = data.map(Vector::toArray)
         val numCols = dataAsArray.first().size
         val n = dataAsArray.count()
         val sums = dataAsArray.reduce({ a, b -> a.zip(b).map({ t -> t.first + t.second }).toDoubleArray() })
@@ -187,7 +182,7 @@ class KMeansInSpark() : Serializable {
             val service = buffer.removeAt(1)
             val tcpState = buffer.removeAt(1)
             val label = buffer.removeAt(buffer.size - 1)
-            val vector = buffer.map({ value -> value.toDouble() }).toMutableList()
+            val vector = buffer.map(String::toDouble).toMutableList()
 
             val newProtocolFeatures = DoubleArray(protocols.size)
             newProtocolFeatures[protocols[protocol]!!] = 1.0

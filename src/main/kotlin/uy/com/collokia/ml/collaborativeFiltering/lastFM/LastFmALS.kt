@@ -1,9 +1,8 @@
 @file:Suppress("UNUSED_VARIABLE")
 
-package uy.com.collokia.ml.collaborativeFiltering.lastFm
+package uy.com.collokia.ml.collaborativeFiltering.lastFM
 
 import org.apache.log4j.BasicConfigurator
-import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaPairRDD
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
@@ -24,7 +23,7 @@ import java.util.*
 
 class LastFmALS() {
 
-    fun preparation(rawUserArtistData: JavaRDD<String>, rawArtistData: JavaRDD<String>, rawArtistAlias: JavaRDD<String>) {
+    fun preparation(rawUserArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistAlias: org.apache.spark.api.java.JavaRDD<String>) {
         val userIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
         { row -> row.split(" ")[0].toDouble() }).stats()
         val itemIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
@@ -73,7 +72,7 @@ class LastFmALS() {
     fun buildRatings(rawUserArtistData: JavaRDD<String>, bArtistAlias: Broadcast<Map<Int, Int>>): JavaRDD<Rating> {
         val bArtistAliasHashMap = HashMap<Int,Int>(bArtistAlias.value)
         return rawUserArtistData.map { line ->
-            val (userID, artistID, count) = line.split(' ').map({ item -> item.toInt() })
+            val (userID, artistID, count) = line.split(' ').map(String::toInt)
             val finalArtistID = bArtistAliasHashMap.getOrElse(artistID, { artistID })
             Rating(userID, finalArtistID, count.toDouble())
         }
@@ -98,9 +97,9 @@ class LastFmALS() {
 
         val userID = 2093760
         val recommendationsToUser = model.recommendProducts(userID, 5)
-        println("The top 5. recommendation to user ${userID} are ${recommendationsToUser.joinToString("\n")}")
+        println("The top 5. recommendation to user $userID are ${recommendationsToUser.joinToString("\n")}")
 
-        val recommendedProductIDs = recommendationsToUser.map({ recommendation -> recommendation.product() }).toSet()
+        val recommendedProductIDs = recommendationsToUser.map(Rating::product).toSet()
 
         val rawArtistsForUser = rawUserArtistData.map({ line -> line.split(' ') }).filter { lineArray ->
             lineArray[0].toInt() == userID
@@ -113,7 +112,7 @@ class LastFmALS() {
         println("Existing products are the follows: \n ${artistByIDs.filter { artistByID -> existingProducts.contains(artistByID._1) }.
                 values().collect().joinToString("\n")}")
         println("-------------------------------------")
-        println("Recommended products to ${userID} are the follows: \n${artistByIDs.filter { artistByID -> recommendedProductIDs.contains(artistByID._1) }.
+        println("Recommended products to $userID are the follows: \n${artistByIDs.filter { artistByID -> recommendedProductIDs.contains(artistByID._1) }.
                 values().collect().joinToString("\n")}")
 
         unpersist(model)
@@ -129,7 +128,7 @@ class LastFmALS() {
         val positiveUserProducts = positiveData.mapToPair({ rating -> Tuple2(rating.user(), rating.product()) })
         // Make predictions for each of them, including a numeric score, and gather by user
 
-        val positivePredictions = predictFunction(positiveUserProducts).groupBy({ rating -> rating.user() })
+        val positivePredictions = predictFunction(positiveUserProducts).groupBy(Rating::user)
 
         // BinaryClassificationMetrics.areaUnderROC is not used here since there are really lots of
         // small AUC problems, and it would be inefficient, when a direct computation is available.
@@ -166,7 +165,7 @@ class LastFmALS() {
         }
 
 // Make predictions on the rest:
-        val negativePredictions = predictFunction(negativeUserProducts).groupBy({ rating -> rating.user() })
+        val negativePredictions = predictFunction(negativeUserProducts).groupBy(Rating::user)
 
         // Join positive and negative by user
         return positivePredictions.join(negativePredictions).values().mapToDouble<Double>(DoubleFunction { positiveAndNegativRatings ->
@@ -219,7 +218,7 @@ class LastFmALS() {
         val evaluations = intArrayOf(10, 50).flatMap { rank ->
             doubleArrayOf(0.0001, 1.0).flatMap { lambda ->
                 doubleArrayOf(1.0, 40.0).map { alpha ->
-                    println("Train ALS with parameters:\trank:\t${rank}\tlambda:\t${lambda}\talpha:\t${alpha}")
+                    println("Train ALS with parameters:\trank:\t$rank\tlambda:\t$lambda\talpha:\t$alpha")
                     val model = ALS.trainImplicit(trainData.rdd(), rank, 10, lambda, alpha)
                     val auc = areaUnderCurve(cvData, bAllItemIDs, { model.predict(cvData.mapToPair({ rating -> Tuple2(rating.user(), rating.product()) })) })
                     unpersist(model)

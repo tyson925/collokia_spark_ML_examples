@@ -51,7 +51,7 @@ class LogisticRegressionInSpark(){
 
         // Obtain the objective per iteration.
         val objectiveHistory = trainingSummary.objectiveHistory()
-        objectiveHistory.forEach({ loss -> println(loss) })
+        objectiveHistory.forEach(::println)
 
         val binarySummary = trainingSummary as BinaryLogisticRegressionSummary
 
@@ -70,13 +70,13 @@ class LogisticRegressionInSpark(){
         lrModel.threshold = bestThreshold
 
         println("Coefficients: ${lrModel.coefficients()} Intercept: ${lrModel.intercept()}")
-        println("maxFMeasure: ${fMeasure}\tthreshold: ${bestThreshold}")
+        println("maxFMeasure: $fMeasure\tthreshold: $bestThreshold")
         return Tuple2(maxFMeasure, bestThreshold)
     }
 
 
     fun buildLogReg(trainData: JavaRDD<LabeledPoint>, numIterations : Int,stepSize : Double, numClasses: Int) : LogisticRegressionModel {
-        println("Build logReg model with ${numClasses} with parameters numIterations=${numIterations}, stepSize=${stepSize}")
+        println("Build logReg model with $numClasses with parameters numIterations=$numIterations, stepSize=$stepSize")
         return LogisticRegressionWithLBFGS().setNumClasses(2).run(trainData.rdd())
     }
 

@@ -1,8 +1,6 @@
 package uy.com.collokia.runSparkOnEMR.jobs
 
-import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
-import uy.com.collokia.common.utils.ES_HOST_NAME
 import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.getSparkContextOnEMR
 import java.io.Serializable

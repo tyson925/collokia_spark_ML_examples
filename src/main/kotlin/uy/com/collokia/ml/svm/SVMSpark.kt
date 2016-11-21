@@ -20,7 +20,7 @@ class SVMSpark() : Serializable {
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
-            println("number of fold:\t${i}")
+            println("number of fold:\t$i")
             val Fmeasure = evaluateSVM(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
@@ -30,7 +30,8 @@ class SVMSpark() : Serializable {
     fun buildSimpleSVM(trainData: JavaRDD<LabeledPoint>, numClasses: Int): SVMModel {
 // Run training algorithm to build the model
         val numIterations = 300
-        println("Build SVM with ${numClasses} classes...")
+        println("Build SVM with $numClasses classes...")
+
         val model = SVMWithSGD.train(trainData.rdd(), numIterations)
         return model
     }

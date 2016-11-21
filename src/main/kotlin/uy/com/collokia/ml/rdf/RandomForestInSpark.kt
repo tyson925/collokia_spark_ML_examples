@@ -2,9 +2,7 @@
 
 package uy.com.collokia.ml.rdf
 
-import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.tree.RandomForest
@@ -31,7 +29,7 @@ class RandomForestInSpark(){
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData,testData) = fold
-            println("number of fold:\t${i}")
+            println("number of fold:\t$i")
             val Fmeasure = evaluateSimpleForest(trainData.toJavaRDD(),testData.toJavaRDD(),2)
             Fmeasure
         }
@@ -59,8 +57,8 @@ class RandomForestInSpark(){
 
     fun buildSimpleForest(trainData: JavaRDD<LabeledPoint>, numClasses: Int, categoricalFeatureInfo : Map<Int, Int>,
                                  featureSubsetStrategy : String, impurity : String, maxDepth : Int, maxBin : Int, numTree : Int): RandomForestModel {
-        println("train a reandom forest with ${numClasses} classes and parameteres featureSubsetStrategy=${featureSubsetStrategy} impurity=${impurity}," +
-                " depth=${maxDepth}, bins=${maxBin}, numTree=${numTree}")
+        println("train a reandom forest with $numClasses classes and parameteres featureSubsetStrategy=$featureSubsetStrategy impurity=$impurity," +
+                " depth=$maxDepth, bins=$maxBin, numTree=$numTree")
         return RandomForest.trainClassifier(trainData, numClasses, categoricalFeatureInfo, numTree, featureSubsetStrategy, impurity,
                 maxDepth, maxBin, numTree)
 

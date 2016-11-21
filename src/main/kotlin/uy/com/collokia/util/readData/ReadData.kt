@@ -17,7 +17,7 @@ import uy.com.collokia.util.ReutersDocument
 import java.io.File
 import uy.com.collokia.ml.classification.ReutersDocumentClassification
 
-public fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : Dataset<DocumentRow> {
+fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : Dataset<DocumentRow> {
 
     val corpusRow = JavaEsSpark.esRDD(jsc, "dzone_data_2/SOThreadExtractValues").map { line ->
         val (id, map) = line
@@ -26,7 +26,7 @@ public fun readDzoneFromEs(sparkSession: SparkSession, jsc: JavaSparkContext) : 
         val title = map.getOrElse("title") { "other" } as String
         //val taggedTitle = title.split(Regex("W")).map { titleToken -> "title:${titleToken}"}.joinToString(" ")
         val labels = map.getOrElse("tags") { "empty" } as String
-        val taggedLabels = labels.map { label -> "label:${label}" }.joinToString(" ")
+        val taggedLabels = labels.map { label -> "label:$label" }.joinToString(" ")
         DocumentRow(category, content, title,labels)
     }
     return corpusRow.convertRDDToDF(sparkSession)

@@ -13,17 +13,16 @@ import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
 import java.io.File
-import java.util.*
 
 
-public  val  START_TAG_KEY = "xmlinput.start";
-public  val END_TAG_KEY = "xmlinput.end";
+const val  START_TAG_KEY = "xmlinput.start"
+const val END_TAG_KEY = "xmlinput.end"
 
 fun loadStopWords(path: String): Set<String> {
     return File(path).readLines().toSet()
 }
 
-public fun saveDocFreqs(path: String, docFreqs: Array<Tuple2<String, Int>>) {
+fun saveDocFreqs(path: String, docFreqs: Array<Tuple2<String, Int>>) {
 
     File(path).bufferedWriter().use { writer ->
         docFreqs.forEach { docFreq ->
@@ -33,7 +32,7 @@ public fun saveDocFreqs(path: String, docFreqs: Array<Tuple2<String, Int>>) {
     }
 }
 
-public fun readFile(path: String, jsc: JavaSparkContext): JavaRDD<String> {
+fun readFile(path: String, jsc: JavaSparkContext): JavaRDD<String> {
     val conf = Configuration()
     conf.set(START_TAG_KEY, "<page>")
     conf.set(END_TAG_KEY, "</page>")
@@ -62,7 +61,7 @@ public fun plainTextToLemmas(text: String, stopWords: Set<String>, pipeline: Sta
     return lemmas
 }*/
 
-public fun isOnlyLetters(str: String): Boolean {
+fun isOnlyLetters(str: String): Boolean {
     // While loop for high performance
     var i = 0
     val charArray = str.toCharArray()

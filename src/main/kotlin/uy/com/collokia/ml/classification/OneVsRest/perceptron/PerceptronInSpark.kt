@@ -4,7 +4,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.feature.StringIndexerModel
-import org.apache.spark.mllib.classification.SVMWithSGD
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Row
@@ -17,7 +16,10 @@ import uy.com.collokia.ml.classification.OneVsRest.generateVtm
 import uy.com.collokia.ml.classification.nlp.vtm.CONTENT_VTM_VOC_SIZE
 import uy.com.collokia.ml.classification.nlp.vtm.TAG_VTM_VOC_SIZE
 import uy.com.collokia.ml.classification.nlp.vtm.TITLE_VTM_VOC_SIZE
-import uy.com.collokia.util.*
+import uy.com.collokia.util.LABELS
+import uy.com.collokia.util.featureCol
+import uy.com.collokia.util.labelIndexCol
+import uy.com.collokia.util.predictionCol
 import java.io.File
 import java.io.Serializable
 

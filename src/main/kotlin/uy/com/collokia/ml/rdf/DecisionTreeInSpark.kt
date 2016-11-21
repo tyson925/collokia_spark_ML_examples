@@ -95,7 +95,7 @@ class DecisionTreeInSpark() : Serializable {
 
         val resultsInFmeasure = tenFolds.mapIndexed { i, fold ->
             val (trainData, testData) = fold
-            println("number of fold:\t${i}")
+            println("number of fold:\t$i")
             val Fmeasure = evaluateDecisionTreeModel(trainData.toJavaRDD(), testData.toJavaRDD(), 2)
             trainData.unpersist(false)
             testData.unpersist(false)
@@ -124,7 +124,7 @@ class DecisionTreeInSpark() : Serializable {
 
     fun buildDecisionTreeModel(trainData: JavaRDD<LabeledPoint>, numClasses: Int, impurity: String, depth: Int, bins: Int): DecisionTreeModel {
         // Build a simple default DecisionTreeModel
-        println("train a decision tree with classes ${numClasses} and parameteres impurity=${impurity}, depth=${depth}, bins=${bins}")
+        println("train a decision tree with classes $numClasses and parameteres impurity=$impurity, depth=$depth, bins=$bins")
 
         //DecisionTreeClassifier().
         val model = DecisionTree.trainClassifier(trainData, numClasses, mapOf<Int, Int>(), impurity, depth, bins)
@@ -163,7 +163,7 @@ class DecisionTreeInSpark() : Serializable {
     fun unencodeOneHot(rawData: JavaRDD<String>): JavaRDD<LabeledPoint> {
 
         val res = rawData.map { line ->
-            val values = line.split(',').map({ value -> value.toDouble() })
+            val values = line.split(',').map(String::toDouble)
             // Which of 4 "wilderness" features is 1
             val wilderness = values.slice(IntRange(10, 14)).indexOf(1.0).toDouble()
             // Similarly for following 40 "soil" features

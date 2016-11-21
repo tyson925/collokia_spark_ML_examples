@@ -1,6 +1,6 @@
 package uy.com.collokia.ml.lsa
 
-public class LSAInSpark() {
+class LSAInSpark() {
 
     companion object {
         @JvmStatic fun main(args: Array<String>) {
@@ -9,7 +9,7 @@ public class LSAInSpark() {
 
     }
 
-    public fun runLSA() {
+    fun runLSA() {
 
     }
 

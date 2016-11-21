@@ -25,8 +25,8 @@ import uy.com.collokia.ml.svm.SVMSpark
 import uy.com.collokia.util.ClassifierResults
 import uy.com.collokia.util.REUTERS_DATA
 import uy.com.collokia.util.featureCol
-import java.io.Serializable
 import uy.com.collokia.util.readData.parseCorpus
+import java.io.Serializable
 
 @Suppress("UNUSED_VARIABLE") class ReutersDocumentClassification() : Serializable {
 
@@ -89,7 +89,7 @@ import uy.com.collokia.util.readData.parseCorpus
             val data = convertDataFrameToLabeledPoints(constructVTMData(sparkSession, corpusInRaw, category))
 
             val arffData = convertLabeledPointToArff(data)
-            saveArff(arffData, "./testData/reuters/arff/${category}.arff")
+            saveArff(arffData, "./testData/reuters/arff/$category.arff")
 
             //val fMeasure = decisionTree.evaluate10Fold(data)
             val fMeasure = logisticRegression.evaluate10Fold(data)
@@ -109,7 +109,7 @@ import uy.com.collokia.util.readData.parseCorpus
 
         corpusInRaw.unpersist()
 
-        println("category:\t${category}")
+        println("category:\t$category")
 
         val vtmPipeline = constructVTMPipeline(arrayOf(),2000)
         val data = vtmPipeline.fit(parsedCorpus).transform(parsedCorpus)
