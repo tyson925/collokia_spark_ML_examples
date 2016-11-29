@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_VARIABLE")
+@file:Suppress("UNUSED_VARIABLE", "ConvertLambdaToReference", "unused")
 
 package uy.com.collokia.ml.collaborativeFiltering.lastFM
 

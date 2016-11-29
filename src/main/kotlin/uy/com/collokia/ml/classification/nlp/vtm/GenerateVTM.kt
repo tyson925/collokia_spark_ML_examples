@@ -69,7 +69,7 @@ fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int, inputCol : S
             .setPattern("\\w+")
             .setGaps(false)
 
-    val stopwordsApplied = if (stopwords.size == 0) {
+    val stopwordsApplied = if (stopwords.isEmpty()) {
         println("Load default english stopwords...")
         StopWordsRemover.loadDefaultStopWords("english")
     } else {
@@ -105,7 +105,7 @@ fun constructVTMPipeline(stopwords: Array<String>, vocabSize : Int, inputCol : S
 
 fun constructTitleVtmDataPipeline(stopwords: Array<String>, vocabSize : Int, inputCol: String = DocumentRow::title.name): Pipeline {
 
-    val stopwordsApplied = if (stopwords.size == 0) {
+    val stopwordsApplied = if (stopwords.isEmpty()) {
         println("Load default english stopwords...")
         StopWordsRemover.loadDefaultStopWords("english")
     } else {

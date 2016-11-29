@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_VARIABLE")
+@file:Suppress("UNUSED_VARIABLE", "unused")
 
 package uy.com.collokia.ml.kMeans
 
@@ -113,8 +113,7 @@ class KMeansInSpark() : Serializable {
         println((5..30 step 5).map({ k -> Tuple2(k, clusteringScore(data, k)) }).joinToString("\n"))
 
 
-        println((30..100 step 10).map({ k -> Tuple2(k, clusteringScore2(data, k)) }).
-                toList().joinToString("\n"))
+        println((30..100 step 10).map({ k -> Tuple2(k, clusteringScore2(data, k)) }).joinToString("\n"))
 
         data.unpersist()
     }
@@ -158,7 +157,7 @@ class KMeansInSpark() : Serializable {
 
         println((60..120 step 10).map({ k ->
             Tuple2(k, clusteringScore2(normalizedData, k))
-        }).toList().joinToString("\n"))
+        }).joinToString("\n"))
 
         normalizedData.unpersist()
     }
@@ -207,7 +206,7 @@ class KMeansInSpark() : Serializable {
 
         println((80..160 step 10).map({ k ->
             Tuple2(k, clusteringScore2(normalizedData, k))
-        }).toList().joinToString ("\n"))
+        }).joinToString ("\n"))
 
         normalizedData.unpersist()
     }

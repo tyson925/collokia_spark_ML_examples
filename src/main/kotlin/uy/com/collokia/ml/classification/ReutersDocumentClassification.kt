@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package uy.com.collokia.ml.classification
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper

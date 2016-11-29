@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_VARIABLE")
+@file:Suppress("UNUSED_VARIABLE", "ConvertLambdaToReference", "unused")
 
 package uy.com.collokia.ml.collaborativeFiltering.movie
 
@@ -189,7 +189,7 @@ class MovieRank() : Serializable {
 
         val movieData = movieDataInLine.mapToPair({ line ->
             val sArray = line.split(' ')
-            val movie = Movie(sArray[0].split(Regex("::"))[0].toInt(), sArray[0].split(Regex("::"))[1], sArray[1].split(Regex("::"))[1].split('|').toList(), 0.0)
+            val movie = Movie(sArray[0].split(Regex("::"))[0].toInt(), sArray[0].split(Regex("::"))[1], sArray[1].split(Regex("::"))[1].split('|'), 0.0)
             Tuple2(movie.movieId, movie)
         })
 

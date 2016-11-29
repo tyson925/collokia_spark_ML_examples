@@ -1,4 +1,4 @@
-@file:Suppress("UNUSED_VARIABLE")
+@file:Suppress("UNUSED_VARIABLE", "ConvertLambdaToReference")
 
 package uy.com.collokia.ml.rdf
 

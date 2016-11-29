@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package uy.com.collokia.ml.classification.OneVsRest.tree
 
 import org.apache.spark.SparkConf

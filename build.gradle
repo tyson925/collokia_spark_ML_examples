@@ -3,7 +3,7 @@ version '1.0-SNAPSHOT'
 description 'collokia-spark machine learning examples'
 
 buildscript {
-    ext.kotlin_version = '1.0.3'
+    ext.kotlin_version = '1.0.5'
     repositories {
         maven {
             url "https://collokia.artifactoryonline.com/collokia/collokia-internal"
@@ -54,8 +54,6 @@ dependencies {
 
     compile "org.elasticsearch:elasticsearch-spark-20_${scalaVersion}:$versionElasticSearchMR"
 
-    //compile project(path: ':collokia-stanford-CoreNLP')
-    //compile project(path: ':collokia-common-util')
     compile "com.collokia:collokia-common-util:$util_version"
 
     compile "joda-time:joda-time:$version_jodatime"
