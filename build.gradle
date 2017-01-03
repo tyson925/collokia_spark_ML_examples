@@ -32,6 +32,8 @@ apply plugin: 'kotlin'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'kluster'
+apply plugin: 'maven'
+
 
 mainClassName = 'uy.com.collokia.runSparkOnEMR.jobs.TestJob'
 
