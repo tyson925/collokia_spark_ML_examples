@@ -34,6 +34,7 @@ apply plugin: 'idea'
 apply plugin: 'kluster'
 apply plugin: 'maven'
 
+group = 'com.github.tyson925'
 
 mainClassName = 'uy.com.collokia.runSparkOnEMR.jobs.TestJob'
 
