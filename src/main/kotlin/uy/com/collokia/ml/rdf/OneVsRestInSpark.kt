@@ -10,7 +10,6 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import scala.Serializable
 import uy.com.collokia.common.utils.deleteIfExists
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.getLocalSparkContext
@@ -50,7 +49,7 @@ class OneVsRestInSpark() : Serializable {
             closeSpark(jsc)
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
 

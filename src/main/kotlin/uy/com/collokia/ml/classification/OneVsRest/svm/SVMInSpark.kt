@@ -10,16 +10,15 @@ import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.SparkSession
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
 import uy.com.collokia.ml.classification.OneVsRest.generateVtm
+import uy.com.collokia.ml.classification.nlp.vtm.convertDataFrameToLabeledPoints
 import uy.com.collokia.scala.ClassTagger
 import java.io.File
 import java.io.Serializable
-import uy.com.collokia.ml.classification.nlp.vtm.*
 
 class SVMInSpark() : Serializable {
 
@@ -87,7 +86,7 @@ class SVMInSpark() : Serializable {
 
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
 

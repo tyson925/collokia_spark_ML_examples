@@ -12,13 +12,12 @@ import org.apache.spark.ml.feature.IndexToString
 import org.apache.spark.ml.feature.StringIndexerModel
 import org.apache.spark.sql.SparkSession
 import org.slf4j.LoggerFactory
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.util.*
+import uy.com.collokia.util.readData.documentRddToDF
 import java.io.File
 import java.io.Serializable
 import java.util.*
-import uy.com.collokia.util.readData.documentRddToDF
 
 data class Article(val id: String, val content: String, val title: String, val labels: List<String>, val date: String, val category: String) : Serializable
 
@@ -96,7 +95,7 @@ class PredicateModel() : Serializable {
             predicateModel(jsc)
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 }
 

@@ -10,20 +10,15 @@ import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import scala.Tuple2
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
 import uy.com.collokia.common.utils.measureTimeInMillis
-import uy.com.collokia.ml.classification.OneVsRest.corpusFileName
-import uy.com.collokia.ml.classification.OneVsRest.evaluateModel
-import uy.com.collokia.ml.classification.OneVsRest.evaluateModelConfusionMTX
-import uy.com.collokia.ml.classification.OneVsRest.generateVtm
+import uy.com.collokia.ml.classification.OneVsRest.*
 import uy.com.collokia.util.LABELS
 import uy.com.collokia.util.NaiveBayesProperties
 import uy.com.collokia.util.featureCol
 import uy.com.collokia.util.labelIndexCol
 import java.io.File
 import java.io.Serializable
-import uy.com.collokia.ml.classification.OneVsRest.*
 
 class OneVsRestNaiveBayes() : Serializable {
 
@@ -110,7 +105,7 @@ class OneVsRestNaiveBayes() : Serializable {
             evaluate10Fold(bestNaiveBayesProperties,dataset)
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
 }

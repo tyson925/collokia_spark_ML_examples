@@ -14,7 +14,6 @@ import org.apache.spark.mllib.recommendation.Rating
 import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.combineByKeyIntoList
@@ -51,7 +50,7 @@ class MovieRank() : Serializable {
             evaluateALS(movieRatingDataInLine)
             closeSpark(jsc)
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
 

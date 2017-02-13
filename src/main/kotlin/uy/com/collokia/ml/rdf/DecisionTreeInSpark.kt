@@ -21,7 +21,6 @@ import org.apache.spark.sql.SparkSession
 import scala.Tuple2
 import uy.com.collokia.common.utils.component1
 import uy.com.collokia.common.utils.component2
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateDecisionTree
 import uy.com.collokia.common.utils.machineLearning.printMultiClassMetrics
@@ -232,7 +231,7 @@ class DecisionTreeInSpark() : Serializable {
             evaluate10FoldDF(sparkSession, corpusInRaw, "earn")
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
 
@@ -266,7 +265,7 @@ class DecisionTreeInSpark() : Serializable {
             cvData.unpersist()
             testData.unpersist()
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}")
     }
 
     companion object {
