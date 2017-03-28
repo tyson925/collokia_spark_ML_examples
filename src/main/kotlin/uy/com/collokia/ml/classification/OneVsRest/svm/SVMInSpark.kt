@@ -20,7 +20,7 @@ import uy.com.collokia.scala.ClassTagger
 import java.io.File
 import java.io.Serializable
 
-class SVMInSpark() : Serializable {
+class SVMInSpark : Serializable {
 
     companion object {
         @JvmStatic fun main(args: Array<String>) {
@@ -58,7 +58,7 @@ class SVMInSpark() : Serializable {
 
         trainData.unpersist()
 
-        println("evaulate decision tree model...")
+        println("evaluate decision tree model...")
 
         val testPrediction = predicateMLModel(model, cvData)
         val FMeasure = evaluateAndPrintPrediction(numClasses, testPrediction)

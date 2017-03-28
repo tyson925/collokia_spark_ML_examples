@@ -8,30 +8,30 @@ import java.io.File
 import java.util.*
 
 
-class WekaClassification() {
+class WekaClassification {
 
-    fun evaulateTenFold(data: Instances): Double {
+    fun evaluateTenFold(data: Instances): Double {
 
         val classifier = J48()
 
         //val model = classifier.buildClassifier(data)
 
         data.setClassIndex(0)
-        val evaulation = Evaluation(data)
-        evaulation.crossValidateModel(classifier, data, 10, Random(1))
+        val evaluation = Evaluation(data)
+        evaluation.crossValidateModel(classifier, data, 10, Random(1))
         println(classifier)
-        println(evaulation.toSummaryString())
-        println(evaulation.toMatrixString())
-        println(evaulation.toClassDetailsString())
+        println(evaluation.toSummaryString())
+        println(evaluation.toMatrixString())
+        println(evaluation.toClassDetailsString())
 
-        return evaulation.fMeasure(1)
+        return evaluation.fMeasure(1)
     }
 
-    fun evaulateReuters() {
+    fun evaluateReuters() {
         val results = File("./testData/reuters/arff/").listFiles().filter { file -> file.name.endsWith(".arff") }.map { file ->
             val category = file.name.substringBefore(".arff")
             val data = loadArff(file.canonicalPath)
-            Pair(category,evaulateTenFold(data))
+            Pair(category, evaluateTenFold(data))
         }
 
         println(results.sortedByDescending { value -> value.second }.joinToString("\n"))
@@ -42,8 +42,8 @@ class WekaClassification() {
 
             //val testData = loadArff("./testData/reuters/arff/acq.arff")
             val weka = WekaClassification()
-            //weka.evaulateTenFold(testData)
-            weka.evaulateReuters()
+            //weka.evaluateTenFold(testData)
+            weka.evaluateReuters()
         }
     }
 

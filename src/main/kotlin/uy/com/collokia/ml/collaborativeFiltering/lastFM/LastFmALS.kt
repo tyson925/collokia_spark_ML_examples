@@ -6,7 +6,6 @@ import org.apache.log4j.BasicConfigurator
 import org.apache.spark.api.java.JavaPairRDD
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.api.java.function.DoubleFunction
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.mllib.recommendation.ALS
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel
@@ -23,10 +22,8 @@ import java.util.*
 class LastFmALS() {
 
     fun preparation(rawUserArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistAlias: org.apache.spark.api.java.JavaRDD<String>) {
-        val userIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
-        { row -> row.split(" ")[0].toDouble() }).stats()
-        val itemIDStats = rawUserArtistData.mapToDouble<Double>(DoubleFunction
-        { row -> row.split(" ")[0].toDouble() }).stats()
+        val userIDStats = rawUserArtistData.mapToDouble<Double>({ row -> row.split(" ")[0].toDouble() }).stats()
+        val itemIDStats = rawUserArtistData.mapToDouble<Double>({ row -> row.split(" ")[0].toDouble() }).stats()
         println(userIDStats)
         println(itemIDStats)
 
@@ -167,7 +164,7 @@ class LastFmALS() {
         val negativePredictions = predictFunction(negativeUserProducts).groupBy(Rating::user)
 
         // Join positive and negative by user
-        return positivePredictions.join(negativePredictions).values().mapToDouble<Double>(DoubleFunction { positiveAndNegativRatings ->
+        return positivePredictions.join(negativePredictions).values().mapToDouble<Double>({ positiveAndNegativRatings ->
 
             // AUC may be viewed as the probability that a random positive item scores
             // higher than a random negative one. Here the proportion of all positive-negative
@@ -271,9 +268,11 @@ class LastFmALS() {
     companion object {
         @JvmStatic fun main(args: Array<String>) {
             BasicConfigurator.configure()
-            val lastFmTest = LastFmALS()
-            lastFmTest.run()
-        }
+
+                val lastFmTest = LastFmALS()
+                lastFmTest.run()
+            }
+
 
     }
 

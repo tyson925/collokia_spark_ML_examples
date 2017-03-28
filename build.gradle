@@ -3,7 +3,7 @@ version '1.0-SNAPSHOT'
 description 'collokia-spark machine learning examples'
 
 buildscript {
-    ext.kotlin_version = '1.0.5'
+    ext.kotlin_version = '1.1.1'
     repositories {
         maven {
             url "https://collokia.artifactoryonline.com/collokia/collokia-internal"

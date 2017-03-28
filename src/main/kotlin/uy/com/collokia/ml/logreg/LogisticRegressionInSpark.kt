@@ -38,7 +38,7 @@ class LogisticRegressionInSpark(){
 
         trainData.unpersist()
 
-        println("evaulate logistic regression model...")
+        println("evaluate logistic regression model...")
         val testPrediction = predicateMLModel(model, testData)
 
         return evaluateAndPrintPrediction(numClasses,testPrediction)

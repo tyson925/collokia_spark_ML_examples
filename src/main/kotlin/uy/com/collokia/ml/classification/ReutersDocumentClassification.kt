@@ -48,7 +48,7 @@ import java.io.Serializable
 
 
 
-    fun tenFoldReutersDataEvaulationWithClassifiers(jsc: JavaSparkContext) {
+    fun tenFoldReutersDataEvaluationWithClassifiers(jsc: JavaSparkContext) {
         val corpusInRaw = jsc.textFile(REUTERS_DATA).cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
@@ -76,7 +76,7 @@ import java.io.Serializable
 
     }
 
-    fun tenFoldReutersDataEvaulation(jsc: JavaSparkContext) {
+    fun tenFoldReutersDataEvaluation(jsc: JavaSparkContext) {
         val corpusInRaw = jsc.textFile(REUTERS_DATA).cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
@@ -118,7 +118,7 @@ import java.io.Serializable
         return data
     }
 
-    fun reutersDataEvaulation(jsc: JavaSparkContext) {
+    fun reutersDataEvaluation(jsc: JavaSparkContext) {
         val corpusInRaw = jsc.textFile("./testData/reuters/json/reuters.json").cache().repartition(8)
 
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
@@ -190,9 +190,9 @@ import java.io.Serializable
 
             //val testData = parseCorpus(jsc)
 
-            //reutersDataEvaulation(jsc)
-            //tenFoldReutersDataEvaulation(jsc)
-            //tenFoldReutersDataEvaulationWithClassifiers(jsc)
+            //reutersDataEvaluation(jsc)
+            //tenFoldReutersDataEvaluation(jsc)
+            //tenFoldReutersDataEvaluationWithClassifiers(jsc)
             //val dt = DecisionTreeInSpark()
             //dt.evaluateSimpleForest(testData)
             //dt.evaluate10FoldDF(trainData, testData, testData, 10)

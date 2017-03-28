@@ -20,7 +20,7 @@ import uy.com.collokia.util.labelIndexCol
 import java.io.File
 import java.io.Serializable
 
-class OneVsRestNaiveBayes() : Serializable {
+class OneVsRestNaiveBayes : Serializable {
 
     companion object {
 

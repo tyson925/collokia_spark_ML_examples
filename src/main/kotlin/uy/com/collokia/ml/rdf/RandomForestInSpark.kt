@@ -48,7 +48,7 @@ class RandomForestInSpark(){
 
         trainData.unpersist()
 
-        println("evaulate random forest model...")
+        println("evaluate random forest model...")
         val testPrediction = predicateRandomForest(forestModel, cvData)
 
         return evaluateAndPrintPrediction(numClasses,testPrediction)

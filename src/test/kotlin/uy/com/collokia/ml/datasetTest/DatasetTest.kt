@@ -5,7 +5,6 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.ml.feature.*
 import org.apache.spark.sql.SparkSession
 import uy.com.collokia.common.utils.deleteIfExists
-import uy.com.collokia.common.utils.formatterToTimePrint
 import uy.com.collokia.common.utils.measureTimeInMillis
 import uy.com.collokia.ml.classification.nlp.vtm.constructTagVtmDataPipeline
 import uy.com.collokia.ml.classification.nlp.vtm.constructTitleVtmDataPipeline
@@ -15,7 +14,7 @@ import uy.com.collokia.util.LABELS
 import uy.com.collokia.util.featureCol
 import java.io.Serializable
 
-class DatasetTest() : Serializable {
+class DatasetTest : Serializable {
 
     fun datasetAssamblerTest(jsc: JavaSparkContext) {
         val sparkSession = SparkSession.builder().master("local").appName("reuters classification").orCreate
@@ -92,7 +91,7 @@ class DatasetTest() : Serializable {
             datasetAssamblerTest(jsc)
 
         }
-        println("Execution time is ${formatterToTimePrint.format(time.second / 1000.toLong())} seconds.")
+        println("Execution time is ${time.second}.")
 
     }
 

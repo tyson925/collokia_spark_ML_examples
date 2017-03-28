@@ -34,7 +34,7 @@ import uy.com.collokia.util.readData.parseCorpus
 import java.io.Serializable
 
 
-class DecisionTreeInSpark() : Serializable {
+class DecisionTreeInSpark : Serializable {
 
     fun evaluate10FoldDF(sparkSession: SparkSession, dataInRaw: JavaRDD<String>, category: String) {
 
@@ -64,7 +64,7 @@ class DecisionTreeInSpark() : Serializable {
         val evaluator = MulticlassClassificationEvaluator().setLabelCol(labelIndexCol).setPredictionCol(predictionCol)
 
         // "f1", "precision", "recall", "weightedPrecision", "weightedRecall"
-        //evaulator.set("metricName", "f1(1.0)")
+        //evaluator.set("metricName", "f1(1.0)")
         evaluator.metricName = "f1"
 
         // We now treat the Pipeline as an Estimator, wrapping it in a CrossValidator instance.
@@ -115,7 +115,7 @@ class DecisionTreeInSpark() : Serializable {
 
         //val dt = DecisionTree()
 
-        println("evaulate decision tree model...")
+        println("evaluate decision tree model...")
         val testPrediction = predicateDecisionTree(model, cvData)
 
         return evaluateAndPrintPrediction(numClasses, testPrediction)
@@ -131,7 +131,10 @@ class DecisionTreeInSpark() : Serializable {
     }
 
 
-    fun evaluateDecisionTree(trainData: JavaRDD<LabeledPoint>, cvData: JavaRDD<LabeledPoint>, testData: JavaRDD<LabeledPoint>, numClasses: Int): Double {
+    fun evaluateDecisionTree(trainData: JavaRDD<LabeledPoint>,
+                             cvData: JavaRDD<LabeledPoint>,
+                             testData: JavaRDD<LabeledPoint>,
+                             numClasses: Int): Double {
         val evaluations =
                 listOf("gini", "entropy").flatMap { impurity ->
                     intArrayOf(10, 20, 30).flatMap { depth ->

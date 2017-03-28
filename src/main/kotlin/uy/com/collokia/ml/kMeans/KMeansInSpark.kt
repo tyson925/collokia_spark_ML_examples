@@ -5,7 +5,6 @@ package uy.com.collokia.ml.kMeans
 import org.apache.log4j.BasicConfigurator
 import org.apache.spark.api.java.JavaPairRDD
 import org.apache.spark.api.java.JavaRDD
-import org.apache.spark.api.java.function.DoubleFunction
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.clustering.KMeansModel
 import org.apache.spark.mllib.linalg.Vector
@@ -18,7 +17,21 @@ import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import java.io.Serializable
 
 
-class KMeansInSpark() : Serializable {
+class KMeansInSpark : Serializable {
+
+
+    companion object {
+        @JvmStatic fun main(args: Array<String>) {
+            BasicConfigurator.configure()
+            val kmeans = KMeansInSpark()
+            //kmeans.zipTest()
+            kmeans.runKMeans()
+
+            //val list = mutableListOf(1,2,3,4,5)
+            //println(list.removeAt(1))
+            //println(list)
+        }
+    }
 
     fun runKMeans() {
 
@@ -94,16 +107,16 @@ class KMeansInSpark() : Serializable {
         val kmeans = KMeans()
         kmeans.k = k
         val model = kmeans.run(data.rdd())
-        return data.mapToDouble<Double>(DoubleFunction { datum -> distToCentroid(datum, model) }).mean()
+        return data.mapToDouble<Double>({ datum -> distToCentroid(datum, model) }).mean()
     }
 
     fun clusteringScore2(data: JavaRDD<Vector>, k: Int): Double {
         val kmeans = KMeans()
         kmeans.k = k
-        kmeans.runs = 10
+        kmeans.maxIterations = 10
         kmeans.epsilon = 1.0e-6
         val model = kmeans.run(data.rdd())
-        return data.mapToDouble<Double>(DoubleFunction { datum -> distToCentroid(datum, model) }).mean()
+        return data.mapToDouble<Double>({ datum -> distToCentroid(datum, model) }).mean()
     }
 
     fun clusteringTake1(rawData: JavaRDD<String>) {
@@ -223,7 +236,7 @@ class KMeansInSpark() : Serializable {
     fun clusteringScore3(normalizedLabelsAndData: JavaPairRDD<String, Vector>, k: Int): Double {
         val kmeans = KMeans()
         kmeans.k = k
-        kmeans.runs = 10
+        kmeans.maxIterations = 10
         kmeans.epsilon = 1.0e-6
 
         val model = kmeans.run(normalizedLabelsAndData.values().rdd().cache())
@@ -270,7 +283,7 @@ class KMeansInSpark() : Serializable {
 
         val kmeans =  KMeans()
         kmeans.k = 150
-        kmeans.runs = 10
+        kmeans.maxIterations = 10
         kmeans.epsilon = 1.0e-6
         val model = kmeans.run(normalizedData.rdd())
 
@@ -295,10 +308,6 @@ class KMeansInSpark() : Serializable {
             anomalyDetector(datum)
         }.keys()
         println(anomalies.take(10).joinToString("\n"))
-
-
-
-
     }
 
     fun zipTest() {
@@ -306,18 +315,4 @@ class KMeansInSpark() : Serializable {
         val list2 = listOf("egy", "ketto", "harom", "negy")
         println(list1.zip(list2))
     }
-
-
 }
-
-fun main(args: Array<String>) {
-    BasicConfigurator.configure()
-    val kmeans = KMeansInSpark()
-    //kmeans.zipTest()
-    kmeans.runKMeans()
-
-    //val list = mutableListOf(1,2,3,4,5)
-    //println(list.removeAt(1))
-    //println(list)
-}
-

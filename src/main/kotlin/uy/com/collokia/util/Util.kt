@@ -23,7 +23,7 @@ val labelIndexCol = "categoryIndex"
 val predictionCol = "prediction"
 
 
-val OVR_MODEL = "./data/model/ovrDectisonTree"
+val OVR_MODEL = "./data/model/ovrDecisionTree"
 val LABELS = "./data/model/labelIndexer"
 
 data class DecisionTreeProperties(val impurity: String, val maxDepth: Int, val bins: Int) : Serializable

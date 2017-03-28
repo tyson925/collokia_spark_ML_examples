@@ -84,7 +84,7 @@ class MovieRank() : Serializable {
         }).join(predictions).values()
 
         // TODO: revisit what is weird about this not working with a lambda
-        val MSE = ratesAndPreds.mapToDouble<Double>(DoubleFunction { resultsPair ->
+        val MSE = ratesAndPreds.mapToDouble<Double>({ resultsPair ->
             val err = resultsPair._1() - resultsPair._2()
             err * err
         }).mean()
@@ -232,7 +232,7 @@ class MovieRank() : Serializable {
 
 
         // TODO: revisit what is weird about this not working with a lambda
-        val MSE = predicatedData.mapToDouble<Double>(DoubleFunction { resultsPair ->
+        val MSE = predicatedData.mapToDouble<Double>({ resultsPair ->
             val err = resultsPair._1() - resultsPair._2()
             err * err
         }).mean()

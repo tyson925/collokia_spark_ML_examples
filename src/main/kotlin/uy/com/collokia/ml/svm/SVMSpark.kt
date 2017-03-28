@@ -12,7 +12,7 @@ import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
 import java.io.Serializable
 
-class SVMSpark() : Serializable {
+class SVMSpark : Serializable {
 
 
     fun evaluate10Fold(data : JavaRDD<LabeledPoint>) : Double{
@@ -42,7 +42,7 @@ class SVMSpark() : Serializable {
 
         trainData.unpersist()
 
-        println("evaulate decision tree model...")
+        println("evaluate decision tree model...")
 
         val testPrediction = predicateMLModel(model, cvData)
         val FMeasure = evaluateAndPrintPrediction(numClasses,testPrediction)
