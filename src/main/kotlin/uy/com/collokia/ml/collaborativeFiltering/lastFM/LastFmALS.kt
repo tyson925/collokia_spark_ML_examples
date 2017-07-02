@@ -19,7 +19,7 @@ import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import java.util.*
 
 
-class LastFmALS() {
+class LastFmALS {
 
     fun preparation(rawUserArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistData: org.apache.spark.api.java.JavaRDD<String>, rawArtistAlias: org.apache.spark.api.java.JavaRDD<String>) {
         val userIDStats = rawUserArtistData.mapToDouble<Double>({ row -> row.split(" ")[0].toDouble() }).stats()

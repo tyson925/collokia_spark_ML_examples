@@ -23,7 +23,7 @@ import java.io.Serializable
 
 data class Movie(val movieId: Int, val title: String, var genres: List<String>?, var prediction: Double) : Serializable
 
-class MovieRank() : Serializable {
+class MovieRank : Serializable {
 
 
     companion object {

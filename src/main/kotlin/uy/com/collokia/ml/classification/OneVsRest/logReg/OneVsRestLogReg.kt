@@ -20,7 +20,7 @@ import uy.com.collokia.util.labelIndexCol
 import java.io.File
 import java.io.Serializable
 
-class OneVsRestLogReg() : Serializable {
+class OneVsRestLogReg : Serializable {
 
     companion object {
 

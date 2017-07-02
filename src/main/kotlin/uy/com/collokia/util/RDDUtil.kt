@@ -9,7 +9,7 @@ import uy.com.collokia.common.utils.measureTimeInMillis
 import java.io.Serializable
 
 
-class RDDUtil() : Serializable {
+class RDDUtil : Serializable {
 
 
     //test how can I "update" an RDD

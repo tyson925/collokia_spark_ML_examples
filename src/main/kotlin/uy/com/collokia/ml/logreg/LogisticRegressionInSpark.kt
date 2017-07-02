@@ -14,7 +14,7 @@ import uy.com.collokia.common.utils.machineLearning.evaluateAndPrintPrediction
 import uy.com.collokia.common.utils.machineLearning.predicateMLModel
 import uy.com.collokia.scala.ClassTagger
 
-class LogisticRegressionInSpark(){
+class LogisticRegressionInSpark {
 
     fun evaluate10Fold(data : JavaRDD<LabeledPoint>) : Double{
         val tenFolds = MLUtils.kFold(data.rdd(),10,10, ClassTagger.scalaClassTag(LabeledPoint::class.java))

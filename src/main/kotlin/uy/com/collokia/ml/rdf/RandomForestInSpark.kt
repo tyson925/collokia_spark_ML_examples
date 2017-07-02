@@ -20,7 +20,7 @@ import uy.com.collokia.common.utils.rdd.getLocalSparkContext
 import uy.com.collokia.scala.ClassTagger
 
 
-class RandomForestInSpark(){
+class RandomForestInSpark {
 
 
     fun evaluate10Fold(data : JavaRDD<LabeledPoint>) : Double{

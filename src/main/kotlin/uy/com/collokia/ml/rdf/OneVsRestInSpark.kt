@@ -22,7 +22,7 @@ import uy.com.collokia.util.labelIndexCol
 import java.io.File
 
 
-class OneVsRestInSpark() : Serializable {
+class OneVsRestInSpark : Serializable {
 
     companion object {
 

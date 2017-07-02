@@ -5,7 +5,7 @@ import uy.com.collokia.common.utils.rdd.closeSpark
 import uy.com.collokia.common.utils.rdd.getSparkContextOnEMR
 import java.io.Serializable
 
-class TestJob() : Serializable {
+class TestJob : Serializable {
     companion object {
 
         fun testRun(jsc: JavaSparkContext){

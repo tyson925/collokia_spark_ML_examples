@@ -29,7 +29,7 @@ import uy.com.collokia.util.featureCol
 import uy.com.collokia.util.readData.parseCorpus
 import java.io.Serializable
 
-@Suppress("UNUSED_VARIABLE") class ReutersDocumentClassification() : Serializable {
+@Suppress("UNUSED_VARIABLE") class ReutersDocumentClassification : Serializable {
 
     companion object {
         val MAPPER = jacksonObjectMapper()

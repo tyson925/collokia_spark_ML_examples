@@ -13,7 +13,7 @@ import uy.com.collokia.common.utils.rdd.sortByValue
 import java.io.Serializable
 
 
-class CosineSimilarity() : Serializable{
+class CosineSimilarity : Serializable{
     companion object {
         @JvmStatic fun main(args: Array<String>) {
 

@@ -22,7 +22,7 @@ import uy.com.collokia.util.predictionCol
 import java.io.File
 import java.io.Serializable
 
-class PerceptronInSpark() : Serializable {
+class PerceptronInSpark : Serializable {
 
     companion object {
 

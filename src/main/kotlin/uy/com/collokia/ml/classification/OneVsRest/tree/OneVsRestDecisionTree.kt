@@ -22,7 +22,7 @@ import uy.com.collokia.util.labelIndexCol
 import java.io.File
 import java.io.Serializable
 
-class OneVsRestDecisionTree() : Serializable {
+class OneVsRestDecisionTree : Serializable {
 
     companion object {
 

@@ -21,7 +21,7 @@ import java.util.*
 
 data class Article(val id: String, val content: String, val title: String, val labels: List<String>, val date: String, val category: String) : Serializable
 
-class PredicateModel() : Serializable {
+class PredicateModel : Serializable {
 
     companion object {
         val LOG = LoggerFactory.getLogger(PredicateModel::class.java)
